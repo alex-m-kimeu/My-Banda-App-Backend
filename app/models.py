@@ -45,7 +45,6 @@ class Review(db.Model, SerializerMixin):
     buyer = db.relationship("Buyer", backref="reviews")
     product = db.relationship("Product", backref="reviews")
     
-    pass
 
 # Wishlist Model
 class Wishlist(db.Model, SerializerMixin):
