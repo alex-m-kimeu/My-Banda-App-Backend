@@ -33,6 +33,17 @@ class Cart(db.Model, SerializerMixin):
 # Review Model
 class Review(db.Model, SerializerMixin):
     __tablename__= 'reviews'
+
+    id = db.Column(db.Integer, primary_key=True)
+    rating = db.Column(db.Integer, nullable=False)
+    description = db.Column(db.String(255), nullable=False)
+    timestamp = db.Column(db.Date, nullable=False)
+    buyer_id = db.Column(db.Integer, db.ForeignKey('buyers.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+
+    # Define relationships
+    buyer = db.relationship("Buyer", backref="reviews")
+    product = db.relationship("Product", backref="reviews")
     
     pass
 
