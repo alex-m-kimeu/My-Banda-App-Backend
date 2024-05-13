@@ -21,8 +21,8 @@ class User(db.Model, SerializerMixin):
 
      # relationships with store, review and complaint model
     store = db.relationship('Store', back_populates= 'seller', uselist=False, cascade="all, delete-orphan")
-    # reviews = db.relationship('Review', back_populates= 'buyer', cascade="all, delete-orphan")
-    # complaints = db.relationship('Complaint', back_populates= 'buyer', cascade="all, delete-orphan")
+    reviews = db.relationship('Review', back_populates= 'buyer', cascade="all, delete-orphan")
+    complaints = db.relationship('Complaint', back_populates= 'buyer', cascade="all, delete-orphan")
 
     # serialization rules
     serialize_rules= ('-stores.seller','-reviews.buyer', '-complaints.buyer',)
@@ -69,7 +69,8 @@ class Store(db.Model, SerializerMixin):
 
     # Relationship with seller and complaints
     seller = db.relationship('User', back_populates='store')
-    # complaints = db.relationship('Complaint', back_populates='store')
+    complaints = db.relationship('Complaint', back_populates='store')
+    products = db.relationship('Product', back_populates='store')
 
     # serialization rules
     serialize_rules= ('-seller.store','-complaints.store',)
@@ -84,38 +85,38 @@ class Store(db.Model, SerializerMixin):
 
 
 
-# # Complaint Model
-# class Complaint(db.Model, SerializerMixin):
-#     __tablename__= 'complaints'
+# Complaint Model
+class Complaint(db.Model, SerializerMixin):
+    __tablename__= 'complaints'
     
-#     pass
+    pass
 
-# # Cart Model
-# class Cart(db.Model, SerializerMixin):
-#     __tablename__= 'carts'
+# Cart Model
+class Cart(db.Model, SerializerMixin):
+    __tablename__= 'carts'
     
-#     pass
+    pass
 
-# # Review Model
-# class Review(db.Model, SerializerMixin):
-#     __tablename__= 'reviews'
+# Review Model
+class Review(db.Model, SerializerMixin):
+    __tablename__= 'reviews'
     
-#     pass
+    pass
 
-# # Wishlist Model
-# class Wishlist(db.Model, SerializerMixin):
-#     __tablename__= 'wishlists'
+# Wishlist Model
+class Wishlist(db.Model, SerializerMixin):
+    __tablename__= 'wishlists'
     
-#     pass
+    pass
 
-# # Product Model
-# class Product(db.Model, SerializerMixin):
-#     __tablename__= 'products'
+# Product Model
+class Product(db.Model, SerializerMixin):
+    __tablename__= 'products'
     
-#     pass
+    pass
 
-# # Category Model
-# class Category(db.Model, SerializerMixin):
-#     __tablename__= 'categories'
+# Category Model
+class Category(db.Model, SerializerMixin):
+    __tablename__= 'categories'
     
-#     pass
+    pass

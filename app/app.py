@@ -111,7 +111,7 @@ class Stores(Resource):
     
         store = Store(
             store_name=data['store_name'], 
-            description=data['descroption'],
+            description=data['description'],
             image=data['image'],
             location=data['location']
             )
