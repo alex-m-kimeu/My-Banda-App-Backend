@@ -8,7 +8,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 import os
 
-from models import db, User, Store
+from models import db, User, Store , Complaint, Cart, Review, Wishlist, Product, Category
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
