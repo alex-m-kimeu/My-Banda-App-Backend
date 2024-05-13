@@ -20,7 +20,7 @@ class User(db.Model, SerializerMixin):
     contact = db.Column(db.Integer, nullable=False)
 
      # relationships with store, review and complaint model
-    stores = db.relationship('Store', back_populates= 'seller', cascade="all, delete-orphan")
+    store = db.relationship('Store', back_populates= 'seller', uselist=False, cascade="all, delete-orphan")
     reviews = db.relationship('Review', back_populates= 'buyer', cascade="all, delete-orphan")
     complaints = db.relationship('Complaint', back_populates= 'buyer', cascade="all, delete-orphan")
 
@@ -57,8 +57,31 @@ class User(db.Model, SerializerMixin):
 # Store Model
 class Store(db.Model, SerializerMixin):
     __tablename__= 'stores'
+
+    store_name = db.Column(db.String, nullable=False, unique=True)
+    description = db.Column(db.String,nullable=False)
+    image = db.Column(db.String, nullable=True)
+    location = db.Column(db.String)
+
+    # Foreign Key
+    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    # Relationship with seller and complaints
+    seller = db.relationship('User', back_populates='store')
+    complaints = db.relationship('Complaint', back_populates='store')
+
+    # serialization rules
+    serialize_rules= ('-seller.store','-complaints.store',)
+
+    # validation
+    @validates('description')
+    def validate_description(self, key, description):
+         if not 5 <= len(description) <= 150:
+             raise ValueError("Description must be between 5 and 150 characters.")
+         return description
+
     
-    pass
+    
 
 # Complaint Model
 class Complaint(db.Model, SerializerMixin):
