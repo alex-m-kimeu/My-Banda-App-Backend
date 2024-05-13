@@ -45,7 +45,7 @@ class Review(db.Model, SerializerMixin):
     buyer = db.relationship("Buyer", backref="reviews")
     product = db.relationship("Product", backref="reviews")
     
-    pass
+
 
 # Wishlist Model
 class Wishlist(db.Model, SerializerMixin):
@@ -57,7 +57,7 @@ class Wishlist(db.Model, SerializerMixin):
     # Define the bidirectional relationship using backref
     product = db.relationship('Product', backref=db.backref('wishlist', uselist=False))
     
-    pass
+ 
 
 # Product Model
 class Product(db.Model, SerializerMixin):
