@@ -66,5 +66,41 @@ class ReviewResource(Resource):
     
 api.add_resource(ReviewResource, '/reviews', '/reviews/<int:review_id>')
 
+class WishlistResource(Resource):
+    def get(self, wishlist_id):
+        wishlist = Wishlist.query.get(wishlist_id)
+        if wishlist:
+            return jsonify(wishlist.to_dict())
+        else:
+            return jsonify({'message':'Wishlist not found'}), 404
+        
+    def post(self):
+        data =  request.json
+        new_wishlist = Wishlist(
+            product_id=data.get('product_id')
+        )
+
+        db.session.add(new_wishlist)
+        db.session.commit()
+        return jsonify(new_wishlist.to_dict()), 201
+    
+    def put(self, wishlist_id):
+        wishlist = Wishlist.query.get_or_404(wishlist_id)
+        data = request.json
+        wishlist.product_id = data.get('product_id')
+
+
+        db.session.commit()
+        return jsonify(wishlist.to_dict())
+    
+    def delete(self, wishlist_id):
+        wishlist = Wishlist.query.get_or_404(wishlist_id)
+        
+        db.session.delete(wishlist)
+        db.session.commit()
+        return jsonify({'message': 'Wishlist deleted successfully'})
+    
+api.add_resource(WishlistResource, '/wishlist', '/wishlists/<int:wishlist_id>')
+
 if __name__ == '__main__':
     app.run(debug=True, port=5500)
