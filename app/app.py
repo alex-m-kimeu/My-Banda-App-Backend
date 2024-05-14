@@ -16,8 +16,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.json.compact = False
 load_dotenv()
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(days=1)
-app.config['JWT_REFRESH_TOKEN_EXPIRES'] = datetime.timedelta(days=30)
+# app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(days=1)
+# app.config['JWT_REFRESH_TOKEN_EXPIRES'] = datetime.timedelta(days=30)
 
 migrate = Migrate(app, db)
 db.init_app(app)
@@ -108,7 +108,6 @@ class Users(Resource):
         users = [user.to_dict() for user in User.query.all()]
         return make_response(users,200)
         
-    
     def post(self):
         data = request.get_json()
         if not data:
@@ -130,8 +129,6 @@ class Users(Resource):
     
 
 api.add_resource(Users, '/users')
-
-
 
 
 # Routes for Products
@@ -402,8 +399,6 @@ class CategoriesByID(Resource):
 
 
 api.add_resource(CategoriesByID, '/categories/<int:id>')
-
-
 
 
 class Reviews(Resource):
