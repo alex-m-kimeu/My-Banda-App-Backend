@@ -452,7 +452,7 @@ class WishlistResource(Resource):
         new_wishlist = Wishlist(
             product_id=data.get('product_id')
         )
-
+        
         db.session.add(new_wishlist)
         db.session.commit()
         return jsonify(new_wishlist.to_dict()), 201
@@ -471,8 +471,126 @@ class WishlistResource(Resource):
         db.session.delete(wishlist)
         db.session.commit()
         return jsonify({'message': 'Wishlist deleted successfully'})
-    
 api.add_resource(WishlistResource, '/wishlist', '/wishlists/<int:wishlist_id>')
+
+# Complaint (get post)
+class Complaints(Resource):
+    def get(self):
+        complaints = [complaint.to_dict() for complaint in Complaint.query.all()]
+        return make_response(complaints, 200)
+    
+    def post(self):
+        data = request.get_json()
+        if not data:
+            return {"error": "Missing data in request"}, 400
+        
+        complaint = Complaint(
+            subject=data['subject'],
+            body=data['body'],
+            store_id=data['store_id'],
+            buyer_id=data['buyer_id']
+        )
+        
+        db.session.add(complaint)
+        db.session.commit()
+        return make_response(complaint.to_dict(), 201)
+
+api.add_resource(Complaints, '/complaints')
+
+# ComplaintByID (get patch delete)
+class ComplaintByID(Resource):
+    def get(self, id):
+        complaint = Complaint.query.filter_by(id=id).first()
+        if complaint is None:
+            return {"error": "Complaint not found"}, 404
+        return make_response(complaint.to_dict(), 200)
+    
+    def patch(self, id):
+        complaint = Complaint.query.filter_by(id=id).first()
+        if complaint is None:
+            return {"error": "Complaint not found"}, 404
+        
+        data = request.get_json()
+        if all(key in data for key in ['subject', 'body']):
+            try:
+                complaint.subject = data['subject']
+                complaint.body = data['body']
+                db.session.commit()
+                return make_response(complaint.to_dict(), 200)
+            except AssertionError:
+                return {"errors": ["validation errors"]}, 400
+        else:
+            return {"errors": ["validation errors"]}, 400
+    
+    def delete(self, id):
+        complaint = Complaint.query.filter_by(id=id).first()
+        if complaint is None:
+            return {"error": "Complaint not found"}, 404
+        
+        complaint = Complaint.query.get_or_404(id)
+        db.session.delete(complaint)
+        db.session.commit()
+        return make_response({'message': 'Complaint deleted successfully'})
+
+api.add_resource(ComplaintByID, '/complaint/<int:id>')
+
+# Cart (get post)
+class Carts(Resource):
+    def get(self):
+        carts = [cart.to_dict() for cart in Cart.query.all()]
+        return make_response(carts, 200)
+    
+    def post(self):
+        data = request.get_json()
+        if not data:
+            return {"error": "Missing data in request"}, 400
+        
+        cart = Cart(
+            product_id=data['product_id']
+        )
+        
+        db.session.add(cart)
+        db.session.commit()
+        return make_response(cart.to_dict(), 201)
+
+api.add_resource(Carts, '/carts')
+
+# CartByID (get delete)
+class CartByID(Resource):
+    def get(self, id):
+        cart = Cart.query.filter_by(id=id).first()
+        if cart is None:
+            return {"error": "Cart not found"}, 404
+        return make_response(cart.to_dict(), 200)
+    
+    def patch(self, id):
+        cart = Cart.query.filter_by(id=id).first()
+        if cart is None:
+            return {"error": "Cart not found"}, 404
+        
+        data = request.get_json()
+        if 'product_id' in data:
+            try:
+                cart.product_id = data['product_id']
+                db.session.commit()
+                return make_response(cart.to_dict(), 200)
+            except AssertionError:
+                return {"errors": ["validation errors"]}, 400
+        else:
+            return {"errors": ["validation errors"]}, 400
+    
+    def delete(self, id):
+        cart = Cart.query.filter_by(id=id).first()
+        if cart is None:
+            return {"error": "Cart not found"}, 404
+        
+        cart = Cart.query.get_or_404(id)
+        db.session.delete(cart)
+        db.session.commit()
+        return make_response({'message': 'Cart deleted successfully'})
+
+api.add_resource(CartByID, '/cart/<int:id>')
+
 
 if __name__ == '__main__':
     with app.app_context():

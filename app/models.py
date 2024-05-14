@@ -3,6 +3,7 @@ from sqlalchemy_serializer import SerializerMixin
 from sqlalchemy.orm import validates, relationship
 from sqlalchemy.ext.associationproxy import association_proxy
 import re
+from datetime import datetime
 
 db = SQLAlchemy()
 
@@ -46,7 +47,7 @@ class User(db.Model, SerializerMixin):
         assert len(password) > 8
         assert re.search(r"[A-Z]", password), "Password should contain at least one uppercase letter"
         assert re.search(r"[a-z]", password), "Password should contain at least one lowercase letter"
-        assert re.search(r"[0-9]", password), "Password should contain at least one digit"
+        assert re.search(r"[0-9]", password), "Password should contain at lbuyereast one digit"
         assert re.search(r"[!@#$%^&*(),.?\":{}|<>]", password), "Password should contain at least one special character"
         return password
     
@@ -87,15 +88,52 @@ class Store(db.Model, SerializerMixin):
 
 # Complaint Model
 class Complaint(db.Model, SerializerMixin):
-    __tablename__= 'complaints'
-    
+    __tablename__ = 'complaints'
+
+    id = db.Column(db.Integer, primary_key=True)
+    subject = db.Column(db.String, nullable=False)
+    body = db.Column(db.String, nullable=False)
+    store_id = db.Column(db.Integer, db.ForeignKey('stores.id'), nullable=False)  # FK
+    buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)   # FK
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    store = db.relationship('Store', back_populates='complaints')
+    buyer = db.relationship('User', back_populates='complaints')
+
+    serialize_rules=('-store.complaint,' '-store.buyer')
+
+    @validates('subject')
+    def validate_subject(self, key, subject):
+        if not 5 <= len(subject) <= 100:
+            raise ValueError("Subject must be between 5 and 100 characters.")
+        return subject
+
+    @validates('body')
+    def validate_body(self, key, body):
+        if not 10 <= len(body) <= 1000:
+            raise ValueError("Body must be between 10 and 1000 characters.")
+        return body
+
     pass
 
 # Cart Model
 class Cart(db.Model, SerializerMixin):
-    __tablename__= 'carts'
-    
+    __tablename__ = 'carts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)  # FK
+
+    product = db.relationship('Product', back_populates='cart')
+    serialize_rules = ('-product.cart')
+
+    @validates('product_id')
+    def validate_product_id(self, key, product_id):
+        if not isinstance(product_id, int) or product_id <= 0:
+            raise ValueError("Product ID must be a positive integer.")
+        return product_id
+
     pass
+
 
 # Review Model
 class Review(db.Model, SerializerMixin):
