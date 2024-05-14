@@ -147,6 +147,17 @@ class Review(db.Model, SerializerMixin):
 
     # Serialization rules
     serialize_rules = ('-buyer,reviews','-product.reviews')
+
+    @validates('rating')
+    def validate_rating(self, key, rating):
+        if not 0 <=len(rating) <= 5:
+            raise ValueError("Rating must be between 0 and 5")
+        return rating
+    
+    @validates('description')
+    def validate_description(self, key , description):
+        if not 5 <= len(description) <= 150:
+            raise ValueError("Description must be between 5 and 150 characters")
     
 
 # Wishlist Model
