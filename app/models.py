@@ -100,14 +100,41 @@ class Cart(db.Model, SerializerMixin):
 # Review Model
 class Review(db.Model, SerializerMixin):
     __tablename__= 'reviews'
+
+    id = db.Column(db.Integer, primary_key=True)
+    rating = db.Column(db.Integer, nullable=False)
+    description = db.Column(db.String(255), nullable=False)
+    timestamp = db.Column(db.Date, nullable=False)
+    buyer_id = db.Column(db.Integer, db.ForeignKey('buyers.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+
+    # Define relationships using back_populates
+    buyer = relationship("Buyer", back_populates="reviews")
+    product = relationship("Product", back_populates="reviews")
+
+    # Serialization rules
+    serialize_only = ('id', 'rating', 'description', 'timestamp', 'buyer_id', 'product_id')
+    serialize_rules = ()
     
-    pass
+
 
 # Wishlist Model
 class Wishlist(db.Model, SerializerMixin):
     __tablename__= 'wishlists'
+
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'),nullable=False ) 
+
+    # Define the bidirectional relationship using back_populates
+    product = db.relationship('Product', back_populates='wishlist')
+
+    #Serialization rules
+    serialize_only = ('id', 'product_id', 'product.id', 'product.title', 'product.description', 'product.price','product.image') 
+    serialize_rules = ()
+
+
     
-    pass
+ 
 
 # Product Model
 class Product(db.Model, SerializerMixin):
