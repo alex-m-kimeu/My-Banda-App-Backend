@@ -127,6 +127,12 @@ class Users(Resource):
         db.session.add(user)
         db.session.commit()
         return make_response(user.to_dict(), 201)
+    
+
+api.add_resource(Users, '/users')
+
+
+
 
 # Routes for Products
 class Products(Resource):
@@ -228,68 +234,6 @@ class ProductsByID(Resource):
 
 
 api.add_resource(ProductsByID, '/products/<int:id>')
-
-#Route for Categories
-class Categories(Resource):
-    def get(self):
-        categories = [category.to_dict() for category in Category.query.all()]
-        return make_response(categories, 200)
-
-    def post(self):
-        data = request.get_json()
-        if not data:
-            return {"error": "Missing data in request"}, 400
-
-        category_name = data.get('category_name')
-        if not category_name:
-            return {"error": "Missing category name"}, 400
-
-        category = Category(category_name=category_name)
-
-        db.session.add(category)
-        db.session.commit()
-        return make_response(category.to_dict(), 201)
-
-
-api.add_resource(Categories, '/categories')
-
-class CategoriesByID(Resource):
-    def get(self, id):
-        category = Category.query.get(id)
-        if category:
-            return make_response(category.to_dict(), 200)
-        else:
-            return {"error": "Category not found"}, 404
-
-    def patch(self, id):
-        category = Category.query.get(id)
-        if not category:
-            return {"error": "Category not found"}, 404
-
-        data = request.get_json()
-        category_name = data.get('category_name')
-        if not category_name:
-            return {"error": "Missing category name"}, 400
-
-        category.category_name = category_name
-        db.session.commit()
-        return make_response(category.to_dict(), 200)
-
-    def delete(self, id):
-        category = Category.query.get(id)
-        if not category:
-            return {"error": "Category not found"}, 404
-
-        db.session.delete(category)
-        db.session.commit()
-        return {"message": "Category deleted successfully"}, 200
-
-
-api.add_resource(CategoriesByID, '/categories/<int:id>')
-
-
-
-api.add_resource(Users, '/users')
 
 # USERBYID (get patch delete)
 class UserByID(Resource):
@@ -401,77 +345,189 @@ class StoreByID(Resource):
     
 api.add_resource(StoreByID, '/store/<int:id>')
 
-class ReviewResource(Resource):
-    def get(self, review_id):
-        review = Review.query.get(review_id)
-        return jsonify(review.to_dict())
-    
+#Route for Categories
+class Categories(Resource):
+    def get(self):
+        categories = [category.to_dict() for category in Category.query.all()]
+        return make_response(categories, 200)
+
     def post(self):
-        data = request.json
-        new_review = Review(
-            rating=data.get('rating'),
-            description=data.get('description'),
-            timestamp=data.get('timestamp'),
-            buyer_id=data.get('buyer_id'),
-            product_id=data.get('product_id')
-        )
+        data = request.get_json()
+        if not data:
+            return {"error": "Missing data in request"}, 400
 
-        db.session.add(new_review)
-        db.session.commit()
-        return jsonify(new_review.to_dict()), 201
-    
-    def put(self, review_id):
-        review = Review.query.get_or_404(review_id)
-        data = request.json
-        review.rating = data.get('rating')
-        review.description = data.get('description')
-        review.timestamp = data.get('timestamp')
-        review.buyer_id = data.get('buyer_id')
-        review.product_id = data.get('product_id')
-        db.session.commit()
-        return jsonify(review.to_dict())
-    
-    def delete(self, review_id):
-        review = Review.query.get_or_404(review_id)
-        db.session.delete(review)
-        db.session.commit()
-        return jsonify({'message': 'Review deleted successfully'})
-    
-api.add_resource(ReviewResource, '/reviews', '/reviews/<int:review_id>')
+        category_name = data['category_name']
+        if not category_name:
+            return {"error": "Missing category name"}, 400
 
-class WishlistResource(Resource):
-    def get(self, wishlist_id):
-        wishlist = Wishlist.query.get(wishlist_id)
-        if wishlist:
-            return jsonify(wishlist.to_dict())
+        category = Category(category_name=category_name)
+
+        db.session.add(category)
+        db.session.commit()
+        return make_response(category.to_dict(), 201)
+
+
+api.add_resource(Categories, '/categories')
+
+class CategoriesByID(Resource):
+    def get(self, id):
+        category = Category.query.get(id)
+        if category:
+            return make_response(category.to_dict(), 200)
         else:
-            return jsonify({'message':'Wishlist not found'}), 404
-        
+            return {"error": "Category not found"}, 404
+
+    def patch(self, id):
+        category = Category.query.get(id)
+        if not category:
+            return {"error": "Category not found"}, 404
+
+        data = request.get_json()
+        category_name = data.get('category_name')
+        if not category_name:
+            return {"error": "Missing category name"}, 400
+
+        category.category_name = category_name
+        db.session.commit()
+        return make_response(category.to_dict(), 200)
+
+    def delete(self, id):
+        category = Category.query.get(id)
+        if not category:
+            return {"error": "Category not found"}, 404
+
+        db.session.delete(category)
+        db.session.commit()
+        return {"message": "Category deleted successfully"}, 200
+
+
+api.add_resource(CategoriesByID, '/categories/<int:id>')
+
+
+
+
+class Reviews(Resource):
+    def get(self):
+        reviews = [review.to_dict() for review in Review.query.all()]
+        return make_response(reviews,200)
+
     def post(self):
-        data =  request.json
-        new_wishlist = Wishlist(
-            product_id=data.get('product_id')
+        data = request.get_json()
+        if not data:
+            return {"error": "Missing data in request"}, 400
+    
+        reviews = Review(
+            rating=data['rating'], 
+            description=data['description'],
+            timestamp=data['timestamp'],
+
+            )
+        
+        db.session.add(reviews)
+        db.session.commit()
+        return make_response(reviews.to_dict(), 201)
+
+api.add_resource(Reviews, '/reviews')
+
+class ReviewsByID(Resource):
+
+    def get(self,id):
+          reviews = Review.query.filter_by(id=id).first()
+          if reviews is None:
+             return {"error": "Review not found"}, 404
+          response_dict = reviews.to_dict()
+          return make_response(response_dict, 200)
+    
+    def patch(self, id):
+        reviews = Review.query.filter_by(id=id).first()
+        if reviews is None:
+            return {"error": "Review not found"}, 404
+        
+        data = request.get_json()
+        if all(key in data for key in ['rating', 'description' , ]):
+            try:   
+                reviews.rating = data['rating']
+                reviews.description= data['description']
+                reviews.timestamp = data['timestamp']
+        
+                db.session.commit()
+                return make_response(reviews.to_dict(), 200)
+            except AssertionError:
+                return {"errors": ["validation errors"]}, 400
+        else:
+            return {"errors": ["validation errors"]}, 400
+
+    def delete(self, id):
+        reviews = Review.query.filter_by(id=id).first()
+        if reviews is None:
+            return {"error": "Review not found"}, 404
+        
+        reviews = Review.query.get_or_404(id)
+        db.session.delete(reviews)
+        db.session.commit()
+        return make_response({'message': 'Review deleted successfully'})
+    
+    
+    
+
+api.add_resource(ReviewsByID, '/review/<int:id>')
+
+
+class Wishlists(Resource):
+    def get(self):
+        wishlists = [wishlist.to_dict() for wishlist in Wishlist.query.all()]
+        return make_response(wishlists,200)
+    
+    def  post(self):
+        data = request.get_json()
+        if not data:
+            return {"error": "Missing data in request"}, 400
+        
+        wishlist = Wishlist(
+            product_id=data['product_id']
         )
         
-        db.session.add(new_wishlist)
+        db.session.add(wishlist)
         db.session.commit()
-        return jsonify(new_wishlist.to_dict()), 201
-    
-    def put(self, wishlist_id):
-        wishlist = Wishlist.query.get_or_404(wishlist_id)
-        data = request.json
-        wishlist.product_id = data.get('product_id')
-
-        db.session.commit()
-        return jsonify(wishlist.to_dict())
-    
-    def delete(self, wishlist_id):
-        wishlist = Wishlist.query.get_or_404(wishlist_id)
+        return make_response(wishlist.to_dict(), 201)
         
+
+api.add_resource(Wishlists, '/wishlists')
+
+class WishlistByID(Resource):
+    def get(self, id):
+        wishlist = Wishlist.query.filter_by(id=id).first()
+        if wishlist is None:
+            return {"error": "Store not found"}, 404
+        response_dict = wishlist.to_dict()
+        return make_response(response_dict, 200)
+
+    def patch(self, id):
+        wishlist = Wishlist.query.filter_by(id=id).first()
+        if wishlist is None:
+            return {"error": "Wishlist not found"}, 404
+        
+        data = request.get_json()
+        if 'product_id' in data:
+            try:
+                wishlist.product_id = data['product_id']
+                db.session.commit()
+                return make_response(wishlist.to_dict(), 200)
+            except AssertionError:
+                return {"errors": ["validation errors"]}, 400
+        else:
+            return {"errors": ["validation errors"]}, 400
+    def delete(self, id):
+        wishlist = Wishlist.query.filter_by(id=id).first()
+        if wishlist is None:
+            return {"error": "Wishlist not found"}, 404
+        
+        wishlist = Wishlist.query.get_or_404(id)
         db.session.delete(wishlist)
         db.session.commit()
-        return jsonify({'message': 'Wishlist deleted successfully'})
-api.add_resource(WishlistResource, '/wishlist', '/wishlists/<int:wishlist_id>')
+        return make_response({'message': 'Wishlist deleted successfully'})
+
+api.add_resource(WishlistByID,'/wishlists/<int:id>')
 
 # Complaint (get post)
 class Complaints(Resource):
