@@ -302,7 +302,6 @@ class WishlistResource(Resource):
         data = request.json
         wishlist.product_id = data.get('product_id')
 
-
         db.session.commit()
         return jsonify(wishlist.to_dict())
     

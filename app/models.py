@@ -115,8 +115,6 @@ class Review(db.Model, SerializerMixin):
     # Serialization rules
     serialize_only = ('id', 'rating', 'description', 'timestamp', 'buyer_id', 'product_id')
     serialize_rules = ()
-    
-
 
 # Wishlist Model
 class Wishlist(db.Model, SerializerMixin):
@@ -131,10 +129,6 @@ class Wishlist(db.Model, SerializerMixin):
     #Serialization rules
     serialize_only = ('id', 'product_id', 'product.id', 'product.title', 'product.description', 'product.price','product.image') 
     serialize_rules = ()
-
-
-    
- 
 
 # Product Model
 class Product(db.Model, SerializerMixin):
