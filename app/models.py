@@ -39,7 +39,7 @@ class User(db.Model, SerializerMixin):
     @validates('role')
     def validate_role(self, key, role):
         if role != 'admin' and role != 'seller' and role != 'buyer' and role != 'deliverer':
-            raise ValueError("Role must be admin, selller, buyer or deliverer.")
+            raise ValueError("Role must be admin, seller, buyer or deliverer.")
         return role
     
     @validates('password')
@@ -138,23 +138,67 @@ class Cart(db.Model, SerializerMixin):
 # Review Model
 class Review(db.Model, SerializerMixin):
     __tablename__= 'reviews'
-    
-    pass
+
+    id = db.Column(db.Integer, primary_key=True)
+    rating = db.Column(db.Integer, nullable=False)
+    description = db.Column(db.String(255), nullable=False)
+    timestamp = db.Column(db.Date, nullable=False)
+    buyer_id = db.Column(db.Integer, db.ForeignKey('buyers.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+
+    # Define relationships using back_populates
+    buyer = relationship("Buyer", back_populates="reviews")
+    product = relationship("Product", back_populates="reviews")
+
+    # Serialization rules
+    serialize_only = ('id', 'rating', 'description', 'timestamp', 'buyer_id', 'product_id')
+    serialize_rules = ()
 
 # Wishlist Model
 class Wishlist(db.Model, SerializerMixin):
     __tablename__= 'wishlists'
-    
-    pass
+
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'),nullable=False ) 
+
+    # Define the bidirectional relationship using back_populates
+    product = db.relationship('Product', back_populates='wishlist')
+
+    #Serialization rules
+    serialize_only = ('id', 'product_id', 'product.id', 'product.title', 'product.description', 'product.price','product.image') 
+    serialize_rules = ()
 
 # Product Model
 class Product(db.Model, SerializerMixin):
     __tablename__= 'products'
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String)
+    description = db.Column(db.Text)
+    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    price = db.Column(db.String)
+    store_id = db.Column(db.Integer, db.ForeignKey('stores.id'))
+    quantity = db.Column(db.Integer)
+    images = db.Column(db.Text)
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'))
+    reviews = db.relationship('Review', back_populates='product', lazy=True)
+    cart_items = db.relationship('Cart', back_populates='product', lazy=True)
+    wishlist_items = db.relationship('Wishlist', back_populates='product', lazy=True)
+    store = db.relationship('Store', back_populates='products')
+    category = db.relationship('Category', back_populates='products')
+
+    #serialize
+    serialize_rules = ( ' -reviews.product', '-cart-items.product', '-wishlist_items.product','-store.products','category.products')
+
     
-    pass
 
 # Category Model
 class Category(db.Model, SerializerMixin):
     __tablename__= 'categories'
+    id = db.Column(db.Integer, primary_key=True)
+    category_name = db.Column(db.String)
+    products = db.relationship('Product', back_populates='category', lazy=True)
+
+    #serialize 
+    serialize_rules= ('-products.category')
+
     
-    pass
