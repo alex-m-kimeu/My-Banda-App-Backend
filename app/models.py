@@ -3,7 +3,7 @@ from sqlalchemy_serializer import SerializerMixin
 from sqlalchemy.orm import validates, relationship
 from sqlalchemy.ext.associationproxy import association_proxy
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 
 db = SQLAlchemy()
 
@@ -35,7 +35,6 @@ class User(db.Model, SerializerMixin):
         assert re.match(r"[^@]+@[^@]+\.[^@]+", email), "Invalid email format"
         return email
     
-
     @validates('role')
     def validate_role(self, key, role):
         if role != 'admin' and role != 'seller' and role != 'buyer' and role != 'deliverer':
@@ -47,7 +46,7 @@ class User(db.Model, SerializerMixin):
         assert len(password) > 8
         assert re.search(r"[A-Z]", password), "Password should contain at least one uppercase letter"
         assert re.search(r"[a-z]", password), "Password should contain at least one lowercase letter"
-        assert re.search(r"[0-9]", password), "Password should contain at lbuyereast one digit"
+        assert re.search(r"[0-9]", password), "Password should contain at least one digit"
         assert re.search(r"[!@#$%^&*(),.?\":{}|<>]", password), "Password should contain at least one special character"
         return password
     
@@ -91,9 +90,9 @@ class Complaint(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     subject = db.Column(db.String, nullable=False)
     body = db.Column(db.String, nullable=False)
-    store_id = db.Column(db.Integer, db.ForeignKey('stores.id'), nullable=False)  # FK
-    buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)   # FK
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    store_id = db.Column(db.Integer, db.ForeignKey('stores.id'), nullable=False)
+    buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now(timezone.utc))
 
     store = db.relationship('Store', back_populates='complaints')
     buyer = db.relationship('User', back_populates='complaints')
@@ -113,7 +112,6 @@ class Complaint(db.Model, SerializerMixin):
         return body
 
     
-
 # Cart Model
 class Cart(db.Model, SerializerMixin):
     __tablename__ = 'carts'
@@ -129,9 +127,7 @@ class Cart(db.Model, SerializerMixin):
         if not isinstance(product_id, int) or product_id <= 0:
             raise ValueError("Product ID must be a positive integer.")
         return product_id
-
     
-
 
 # Review Model
 class Review(db.Model, SerializerMixin):
@@ -140,7 +136,7 @@ class Review(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     rating = db.Column(db.Integer, nullable=False)
     description = db.Column(db.String(255), nullable=False)
-    timestamp = db.Column(db.Date, nullable=False)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
     buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
@@ -150,8 +146,8 @@ class Review(db.Model, SerializerMixin):
     product = db.relationship("Product", back_populates="reviews")
 
     # Serialization rules
-
     serialize_rules = ('-buyer,reviews','-product.reviews')
+    
 
 # Wishlist Model
 class Wishlist(db.Model, SerializerMixin):
@@ -159,7 +155,7 @@ class Wishlist(db.Model, SerializerMixin):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    product_id = db.Column(db.Integer, db.ForeignKey('wishlists.id'),nullable=False ) 
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'),nullable=False ) 
  
   
     # Define the bidirectional relationship using back_populates 
@@ -167,6 +163,7 @@ class Wishlist(db.Model, SerializerMixin):
 
     #Serialization rules
     serialize_rules = ('-product.wishlist')
+    
 
 # Product Model
 class Product(db.Model, SerializerMixin):
@@ -193,7 +190,6 @@ class Product(db.Model, SerializerMixin):
     #serialize
     serialize_rules = ( ' -reviews.product', '-cart.product', '-wishlist.product','-store.products','-category.products')
 
-    
 
 # Category Model
 class Category(db.Model, SerializerMixin):
