@@ -8,7 +8,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 import os
 
-from models import db, User, Store , Complaint, Cart, Review, Wishlist, Product, Category
+from models import db, User, Store, Complaint, Cart, Review, Wishlist, Product, Category
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -16,7 +16,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.json.compact = False
 load_dotenv()
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
-
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(days=1)
+app.config['JWT_REFRESH_TOKEN_EXPIRES'] = datetime.timedelta(days=30)
 
 migrate = Migrate(app, db)
 db.init_app(app)
@@ -25,7 +26,82 @@ jwt = JWTManager(app)
 api = Api(app)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
+# Hardcode Admin Credentials
+def create_admin():
+    admin_email = "mybanda.admin@gmail.com"
+    admin = User.query.filter_by(email=admin_email).first()
+    if not admin:
+        hashed_password = bcrypt.generate_password_hash("Admin123!").decode('utf-8')
+        admin = User(
+            username="Banda Admin", 
+            email=admin_email,
+            role="admin",
+            password=hashed_password,
+            contact="1234567890",
+            image="https://www.pngegg.com/en/png-ogqel"
+        )
+        db.session.add(admin)
+        db.session.commit()
+
 # Restful Routes
+# Sign in
+class SignIn(Resource):
+    def post(self):
+        data = request.get_json()
+        if not data:
+            return {"error": "Missing data in request"}, 400
+
+        email = data.get('email')
+        password = data.get('password')
+        
+        user = User.query.filter_by(email=email).first()
+        
+        if not user:
+            return {"error": "User does not exist"}, 401
+        if not bcrypt.check_password_hash(user.password, password):
+            return {"error": "Incorrect password"}, 401
+        
+        access_token = create_access_token(identity={'id': user.id, 'role': user.role})
+        refresh_token = create_refresh_token(identity={'id': user.id, 'role': user.role})
+        return {"access_token": access_token, "refresh_token": refresh_token}, 200
+
+api.add_resource(SignIn, '/signin')
+
+# Sign up
+class SignUp(Resource):
+    def post(self):
+        data = request.get_json()
+        if not data:
+            return {"error": "Missing data in request"}, 400
+
+        hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
+        user = User(
+            username=data['username'], 
+            email=data['email'],
+            role=data['role'],
+            password=hashed_password,
+            contact=data['contact'],
+            image=data['image']
+            )
+        
+        db.session.add(user)
+        db.session.commit()
+        return make_response(user.to_dict(), 201)
+
+api.add_resource(SignUp, '/signup')
+
+class TokenRefresh(Resource):
+    @jwt_required(refresh=True)
+    def post(self):
+        try:
+            current_user = get_jwt_identity()
+            access_token = create_access_token(identity=current_user)
+            return {'access_token': access_token}, 200
+        except Exception as e:
+            return jsonify(error=str(e)), 500
+
+api.add_resource(TokenRefresh, '/refresh-token')
+
 # USERS (get post)
 class Users(Resource):
     def get(self):
@@ -166,7 +242,7 @@ class StoreByID(Resource):
 api.add_resource(StoreByID, '/store/<int:id>')
 
 
-
-
 if __name__ == '__main__':
+    with app.app_context():
+        create_admin()
     app.run(debug=True, port=5500)

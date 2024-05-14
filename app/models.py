@@ -38,7 +38,7 @@ class User(db.Model, SerializerMixin):
     @validates('role')
     def validate_role(self, key, role):
         if role != 'admin' and role != 'seller' and role != 'buyer' and role != 'deliverer':
-            raise ValueError("Role must be admin, selller, buyer or deliverer.")
+            raise ValueError("Role must be admin, seller, buyer or deliverer.")
         return role
     
     @validates('password')
