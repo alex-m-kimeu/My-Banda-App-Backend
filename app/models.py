@@ -47,7 +47,7 @@ class User(db.Model, SerializerMixin):
         assert len(password) > 8
         assert re.search(r"[A-Z]", password), "Password should contain at least one uppercase letter"
         assert re.search(r"[a-z]", password), "Password should contain at least one lowercase letter"
-        assert re.search(r"[0-9]", password), "Password should contain at least one digit"
+        assert re.search(r"[0-9]", password), "Password should contain at lbuyereast one digit"
         assert re.search(r"[!@#$%^&*(),.?\":{}|<>]", password), "Password should contain at least one special character"
         return password
     
@@ -99,6 +99,8 @@ class Complaint(db.Model, SerializerMixin):
 
     store = db.relationship('Store', back_populates='complaints')
     buyer = db.relationship('User', back_populates='complaints')
+
+    serialize_rules=('-store.complaint,' '-store.buyer')
 
     @validates('subject')
     def validate_subject(self, key, subject):

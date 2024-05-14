@@ -257,6 +257,22 @@ class CartByID(Resource):
             return {"error": "Cart not found"}, 404
         return make_response(cart.to_dict(), 200)
     
+    def patch(self, id):
+        cart = Cart.query.filter_by(id=id).first()
+        if cart is None:
+            return {"error": "Cart not found"}, 404
+        
+        data = request.get_json()
+        if 'product_id' in data:
+            try:
+                cart.product_id = data['product_id']
+                db.session.commit()
+                return make_response(cart.to_dict(), 200)
+            except AssertionError:
+                return {"errors": ["validation errors"]}, 400
+        else:
+            return {"errors": ["validation errors"]}, 400
+    
     def delete(self, id):
         cart = Cart.query.filter_by(id=id).first()
         if cart is None:
@@ -268,6 +284,7 @@ class CartByID(Resource):
         return make_response({'message': 'Cart deleted successfully'})
 
 api.add_resource(CartByID, '/cart/<int:id>')
+
 
 
 if __name__ == '__main__':
