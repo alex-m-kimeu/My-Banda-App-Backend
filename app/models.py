@@ -55,7 +55,9 @@ class Wishlist(db.Model, SerializerMixin):
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'),nullable=False ) 
 
     # Define the bidirectional relationship using backref
-    product = db.relationship('Product', backref=db.backref('wishlist', uselist=False))
+    product = db.relationship('Product', back_populates='wishlist')
+
+    
     
  
 
