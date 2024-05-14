@@ -16,8 +16,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.json.compact = False
 load_dotenv()
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(days=1)
-app.config['JWT_REFRESH_TOKEN_EXPIRES'] = datetime.timedelta(days=30)
+# app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(days=1)
+# app.config['JWT_REFRESH_TOKEN_EXPIRES'] = datetime.timedelta(days=30)
 
 migrate = Migrate(app, db)
 db.init_app(app)
@@ -240,7 +240,7 @@ class Categories(Resource):
         if not data:
             return {"error": "Missing data in request"}, 400
 
-        category_name = data.get('category_name')
+        category_name = data['category_name']
         if not category_name:
             return {"error": "Missing category name"}, 400
 
@@ -401,77 +401,100 @@ class StoreByID(Resource):
     
 api.add_resource(StoreByID, '/store/<int:id>')
 
-class ReviewResource(Resource):
-    def get(self, review_id):
-        review = Review.query.get(review_id)
-        return jsonify(review.to_dict())
-    
+
+class Reviews(Resource):
+    def get(self):
+        reviews = [review.to_dict() for review in Review.query.all()]
+        return make_response(reviews,200)
+
     def post(self):
-        data = request.json
-        new_review = Review(
-            rating=data.get('rating'),
-            description=data.get('description'),
-            timestamp=data.get('timestamp'),
-            buyer_id=data.get('buyer_id'),
-            product_id=data.get('product_id')
-        )
+        data = request.get_json()
+        if not data:
+            return {"error": "Missing data in request"}, 400
+    
+        reviews = Review(
+            rating=data['rating'], 
+            description=data['description'],
+            timestamp=data['timestamp'],
 
-        db.session.add(new_review)
+            )
+        
+        db.session.add(reviews)
         db.session.commit()
-        return jsonify(new_review.to_dict()), 201
-    
-    def put(self, review_id):
-        review = Review.query.get_or_404(review_id)
-        data = request.json
-        review.rating = data.get('rating')
-        review.description = data.get('description')
-        review.timestamp = data.get('timestamp')
-        review.buyer_id = data.get('buyer_id')
-        review.product_id = data.get('product_id')
-        db.session.commit()
-        return jsonify(review.to_dict())
-    
-    def delete(self, review_id):
-        review = Review.query.get_or_404(review_id)
-        db.session.delete(review)
-        db.session.commit()
-        return jsonify({'message': 'Review deleted successfully'})
-    
-api.add_resource(ReviewResource, '/reviews', '/reviews/<int:review_id>')
+        return make_response(reviews.to_dict(), 201)
 
-class WishlistResource(Resource):
-    def get(self, wishlist_id):
-        wishlist = Wishlist.query.get(wishlist_id)
-        if wishlist:
-            return jsonify(wishlist.to_dict())
+api.add_resource(Reviews, '/reviews')
+
+class ReviewsByID(Resource):
+
+    def get(self,id):
+          reviews = Review.query.filter_by(id=id).first()
+          if reviews is None:
+             return {"error": "Review not found"}, 404
+          response_dict = reviews.to_dict()
+          return make_response(response_dict, 200)
+    
+    def patch(self, id):
+        reviews = Review.query.filter_by(id=id).first()
+        if reviews is None:
+            return {"error": "Review not found"}, 404
+        
+        data = request.get_json()
+        if all(key in data for key in ['rating', 'description' , ]):
+            try:   
+                reviews.rating = data['rating']
+                reviews.description= data['description']
+                reviews.timestamp = data['timestamp']
+        
+                db.session.commit()
+                return make_response(reviews.to_dict(), 200)
+            except AssertionError:
+                return {"errors": ["validation errors"]}, 400
         else:
-            return jsonify({'message':'Wishlist not found'}), 404
-        
-    def post(self):
-        data =  request.json
-        new_wishlist = Wishlist(
-            product_id=data.get('product_id')
-        )
-        
-        db.session.add(new_wishlist)
-        db.session.commit()
-        return jsonify(new_wishlist.to_dict()), 201
-    
-    def put(self, wishlist_id):
-        wishlist = Wishlist.query.get_or_404(wishlist_id)
-        data = request.json
-        wishlist.product_id = data.get('product_id')
+            return {"errors": ["validation errors"]}, 400
 
-        db.session.commit()
-        return jsonify(wishlist.to_dict())
-    
-    def delete(self, wishlist_id):
-        wishlist = Wishlist.query.get_or_404(wishlist_id)
+    def delete(self, id):
+        reviews = Review.query.filter_by(id=id).first()
+        if reviews is None:
+            return {"error": "Review not found"}, 404
         
-        db.session.delete(wishlist)
+        reviews = Review.query.get_or_404(id)
+        db.session.delete(reviews)
         db.session.commit()
-        return jsonify({'message': 'Wishlist deleted successfully'})
-api.add_resource(WishlistResource, '/wishlist', '/wishlists/<int:wishlist_id>')
+        return make_response({'message': 'Review deleted successfully'})
+    
+    
+    
+
+api.add_resource(ReviewsByID, '/review/<int:id>')
+
+
+class Wishlists(Resource):
+    def get(self):
+        wishlists = [wishlist.to_dict() for wishlist in Wishlist.query.all()]
+        return make_response(wishlists,200)
+    
+    def  post(self):
+        pass
+        
+
+api.add_resource(Wishlists, '/wishlist')
+
+class WishlistByID(Resource):
+    def get(self, id):
+        wishlist = Wishlist.query.filter_by(id=id).first()
+        if wishlist is None:
+            return {"error": "Store not found"}, 404
+        response_dict = wishlist.to_dict()
+        return make_response(response_dict, 200)
+
+    def patch(self, id):
+        pass
+    
+    def delete(self, id):
+        pass
+
+api.add_resource(WishlistByID,'/wishlists/<int:id>')
 
 # Complaint (get post)
 class Complaints(Resource):
@@ -593,6 +616,6 @@ api.add_resource(CartByID, '/cart/<int:id>')
 
 
 if __name__ == '__main__':
-    with app.app_context():
-        create_admin()
+    # with app.app_context():
+        # create_admin()
     app.run(debug=True, port=5500)
