@@ -60,7 +60,10 @@ class Product(db.Model, SerializerMixin):
     wishlist_items = db.relationship('Wishlist', back_populates='product', lazy=True)
     store = db.relationship('Store', back_populates='products')
     category = db.relationship('Category', back_populates='products')
-    
+
+    #serialize
+    serialize_rules = ( ' -reviews.product', '-cart-items.product', '-wishlist_items.product','-store.products','category.products')
+
     
 
 # Category Model
@@ -69,5 +72,8 @@ class Category(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     category_name = db.Column(db.String)
     products = db.relationship('Product', back_populates='category', lazy=True)
+
+    #serialize 
+    serialize_rules= ('-products.category')
 
     
