@@ -16,8 +16,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.json.compact = False
 load_dotenv()
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
-# app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(days=1)
-# app.config['JWT_REFRESH_TOKEN_EXPIRES'] = datetime.timedelta(days=30)
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(days=1)
+app.config['JWT_REFRESH_TOKEN_EXPIRES'] = datetime.timedelta(days=30)
 
 migrate = Migrate(app, db)
 db.init_app(app)
@@ -127,6 +127,12 @@ class Users(Resource):
         db.session.add(user)
         db.session.commit()
         return make_response(user.to_dict(), 201)
+    
+
+api.add_resource(Users, '/users')
+
+
+
 
 # Routes for Products
 class Products(Resource):
@@ -228,68 +234,6 @@ class ProductsByID(Resource):
 
 
 api.add_resource(ProductsByID, '/products/<int:id>')
-
-#Route for Categories
-class Categories(Resource):
-    def get(self):
-        categories = [category.to_dict() for category in Category.query.all()]
-        return make_response(categories, 200)
-
-    def post(self):
-        data = request.get_json()
-        if not data:
-            return {"error": "Missing data in request"}, 400
-
-        category_name = data['category_name']
-        if not category_name:
-            return {"error": "Missing category name"}, 400
-
-        category = Category(category_name=category_name)
-
-        db.session.add(category)
-        db.session.commit()
-        return make_response(category.to_dict(), 201)
-
-
-api.add_resource(Categories, '/categories')
-
-class CategoriesByID(Resource):
-    def get(self, id):
-        category = Category.query.get(id)
-        if category:
-            return make_response(category.to_dict(), 200)
-        else:
-            return {"error": "Category not found"}, 404
-
-    def patch(self, id):
-        category = Category.query.get(id)
-        if not category:
-            return {"error": "Category not found"}, 404
-
-        data = request.get_json()
-        category_name = data.get('category_name')
-        if not category_name:
-            return {"error": "Missing category name"}, 400
-
-        category.category_name = category_name
-        db.session.commit()
-        return make_response(category.to_dict(), 200)
-
-    def delete(self, id):
-        category = Category.query.get(id)
-        if not category:
-            return {"error": "Category not found"}, 404
-
-        db.session.delete(category)
-        db.session.commit()
-        return {"message": "Category deleted successfully"}, 200
-
-
-api.add_resource(CategoriesByID, '/categories/<int:id>')
-
-
-
-api.add_resource(Users, '/users')
 
 # USERBYID (get patch delete)
 class UserByID(Resource):
@@ -401,6 +345,66 @@ class StoreByID(Resource):
     
 api.add_resource(StoreByID, '/store/<int:id>')
 
+#Route for Categories
+class Categories(Resource):
+    def get(self):
+        categories = [category.to_dict() for category in Category.query.all()]
+        return make_response(categories, 200)
+
+    def post(self):
+        data = request.get_json()
+        if not data:
+            return {"error": "Missing data in request"}, 400
+
+        category_name = data['category_name']
+        if not category_name:
+            return {"error": "Missing category name"}, 400
+
+        category = Category(category_name=category_name)
+
+        db.session.add(category)
+        db.session.commit()
+        return make_response(category.to_dict(), 201)
+
+
+api.add_resource(Categories, '/categories')
+
+class CategoriesByID(Resource):
+    def get(self, id):
+        category = Category.query.get(id)
+        if category:
+            return make_response(category.to_dict(), 200)
+        else:
+            return {"error": "Category not found"}, 404
+
+    def patch(self, id):
+        category = Category.query.get(id)
+        if not category:
+            return {"error": "Category not found"}, 404
+
+        data = request.get_json()
+        category_name = data.get('category_name')
+        if not category_name:
+            return {"error": "Missing category name"}, 400
+
+        category.category_name = category_name
+        db.session.commit()
+        return make_response(category.to_dict(), 200)
+
+    def delete(self, id):
+        category = Category.query.get(id)
+        if not category:
+            return {"error": "Category not found"}, 404
+
+        db.session.delete(category)
+        db.session.commit()
+        return {"message": "Category deleted successfully"}, 200
+
+
+api.add_resource(CategoriesByID, '/categories/<int:id>')
+
+
+
 
 class Reviews(Resource):
     def get(self):
@@ -475,10 +479,20 @@ class Wishlists(Resource):
         return make_response(wishlists,200)
     
     def  post(self):
-        pass
+        data = request.get_json()
+        if not data:
+            return {"error": "Missing data in request"}, 400
+        
+        wishlist = Wishlist(
+            product_id=data['product_id']
+        )
+        
+        db.session.add(wishlist)
+        db.session.commit()
+        return make_response(wishlist.to_dict(), 201)
         
 
-api.add_resource(Wishlists, '/wishlist')
+api.add_resource(Wishlists, '/wishlists')
 
 class WishlistByID(Resource):
     def get(self, id):
@@ -489,10 +503,29 @@ class WishlistByID(Resource):
         return make_response(response_dict, 200)
 
     def patch(self, id):
-        pass
-    
+        wishlist = Wishlist.query.filter_by(id=id).first()
+        if wishlist is None:
+            return {"error": "Wishlist not found"}, 404
+        
+        data = request.get_json()
+        if 'product_id' in data:
+            try:
+                wishlist.product_id = data['product_id']
+                db.session.commit()
+                return make_response(wishlist.to_dict(), 200)
+            except AssertionError:
+                return {"errors": ["validation errors"]}, 400
+        else:
+            return {"errors": ["validation errors"]}, 400
     def delete(self, id):
-        pass
+        wishlist = Wishlist.query.filter_by(id=id).first()
+        if wishlist is None:
+            return {"error": "Wishlist not found"}, 404
+        
+        wishlist = Wishlist.query.get_or_404(id)
+        db.session.delete(wishlist)
+        db.session.commit()
+        return make_response({'message': 'Wishlist deleted successfully'})
 
 api.add_resource(WishlistByID,'/wishlists/<int:id>')
 
@@ -616,6 +649,6 @@ api.add_resource(CartByID, '/cart/<int:id>')
 
 
 if __name__ == '__main__':
-    # with app.app_context():
-        # create_admin()
+    with app.app_context():
+        create_admin()
     app.run(debug=True, port=5500)

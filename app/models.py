@@ -84,8 +84,6 @@ class Store(db.Model, SerializerMixin):
          return description
 
 
-
-
 # Complaint Model
 class Complaint(db.Model, SerializerMixin):
     __tablename__ = 'complaints'
@@ -160,11 +158,12 @@ class Wishlist(db.Model, SerializerMixin):
     __tablename__= 'wishlists'
 
     id = db.Column(db.Integer, primary_key=True)
-    
 
-    # Define the bidirectional relationship using back_populates
-
-    products = db.relationship('Product', back_populates='wishlist',uselist=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('wishlists.id'),nullable=False ) 
+ 
+  
+    # Define the bidirectional relationship using back_populates 
+    products = db.relationship('Product', back_populates='wishlist')
 
     #Serialization rules
     serialize_rules = ('-product.wishlist')
@@ -181,9 +180,9 @@ class Product(db.Model, SerializerMixin):
     store_id = db.Column(db.Integer, db.ForeignKey('stores.id'))
     quantity = db.Column(db.Integer)
     images = db.Column(db.Text)
+ 
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id')) 
 
-    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'))
-    wishlist_id = db.Column(db.Integer, db.ForeignKey('wishlists.id'),nullable=False ) 
 
     reviews = db.relationship('Review', back_populates='product', lazy=True)
     cart = db.relationship('Cart', back_populates='product', lazy=True)
