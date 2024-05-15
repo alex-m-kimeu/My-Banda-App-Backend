@@ -49,7 +49,7 @@ class User(db.Model, SerializerMixin):
         assert re.search(r"[0-9]", password), "Password should contain at least one digit"
         assert re.search(r"[!@#$%^&*(),.?\":{}|<>]", password), "Password should contain at least one special character"
         return password
-    
+      
     @validates('contact')
     def validate_contact(self, key, contact):
          assert contact.isdigit(), "Contact number must only contain digits"
@@ -88,7 +88,12 @@ class Store(db.Model, SerializerMixin):
          if not 5 <= len(description) <= 150:
              raise ValueError("Description must be between 5 and 150 characters.")
          return description
-
+   
+    @validates('location')
+    def validate_location(self, key, location):
+        if len(location) > 30:
+            raise ValueError("Location must be 30 characters or fewer.")
+        return location
 
 # Complaint Model
 class Complaint(db.Model, SerializerMixin):
