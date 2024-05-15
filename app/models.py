@@ -170,13 +170,13 @@ class Product(db.Model, SerializerMixin):
     __tablename__= 'products'
 
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String)
-    description = db.Column(db.Text)
+    title = db.Column(db.String,nullable=False)
+    description = db.Column(db.Text,nullable=False)
     seller_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    price = db.Column(db.String)
+    price = db.Column(db.String,nullable=False)
     store_id = db.Column(db.Integer, db.ForeignKey('stores.id'))
-    quantity = db.Column(db.Integer)
-    images = db.Column(db.Text)
+    quantity = db.Column(db.Integer, nullable=False)
+    images = db.Column(db.String, nullable=False)
  
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id')) 
 
@@ -190,16 +190,39 @@ class Product(db.Model, SerializerMixin):
     #serialize
     serialize_rules = ( ' -reviews.product', '-cart.product', '-wishlist.product','-store.products','-category.products')
 
+#validation
+    @validates('title')
+    def validate_title(self, key, value):
+        if len(value) > 10:
+            raise ValueError("Title should not exceed 10 characters.")
+        return value
+
+    # Validate description length and word count
+    @validates('description')
+    def validate_description(self, key, value):
+        word_count = len(re.findall(r'\w+', value))
+        if word_count < 5 or word_count > 150:
+            raise ValueError("Description should be between 5 to 150 words.")
+        return value
 
 # Category Model
 class Category(db.Model, SerializerMixin):
     __tablename__= 'categories'
 
     id = db.Column(db.Integer, primary_key=True)
-    category_name = db.Column(db.String)
+    category_name = db.Column(db.String,nullable=False)
     products = db.relationship('Product', back_populates='category', lazy=True)
 
     #serialize 
     serialize_rules= ('-products.category')
+
+    #validation
+    @validates('category_name')
+    def validate_category_name(self, key, value):
+        allowed_categories = ['Electronics', 'Health and beauty', 'Food and Beverages', 'Groceries','Stationery']
+        if value not in allowed_categories:
+            raise ValueError("Category name must be one of the following: Electronics, Health and beauty, Food and Beverages, Groceries,Stationery.")
+        return value
+
 
     
