@@ -17,7 +17,7 @@ class User(db.Model, SerializerMixin):
     email = db.Column(db.String, unique=True, nullable=False)
     password = db.Column(db.String, nullable=False)
     role = db.Column(db.String, nullable=False)
-    image = db.Column(db.String, nullable=True)
+    image = db.Column(db.String, nullable=False)
     contact = db.Column(db.Integer, nullable=False)
 
      # relationships with store, review and complaint model
@@ -50,8 +50,15 @@ class User(db.Model, SerializerMixin):
         assert re.search(r"[!@#$%^&*(),.?\":{}|<>]", password), "Password should contain at least one special character"
         return password
     
-    def __repr__(self):
-        return f"<User {self.id}, {self.username}, {self.contact},{self.image},{self.role}, {self.email}, {self.password}>"
+    @validates('contact')
+    def validate_contact(self, key, contact):
+         assert contact.isdigit(), "Contact number must only contain digits"
+         assert 10 <= len(contact) <= 15, "Contact number length must be between 10 to 15 digits"
+         assert not any(char in "!@#$%^&*(),.?\":{}|<>" for char in contact), "Contact number cannot contain special characters"
+         assert not contact.strip(), "Contact number cannot contain whitespace"
+         
+         def __repr__(self):
+             return f"<User {self.id}, {self.username}, {self.contact},{self.image},{self.role}, {self.email}, {self.password}>"
     
 
 # Store Model
@@ -61,8 +68,8 @@ class Store(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     store_name = db.Column(db.String, nullable=False, unique=True)
     description = db.Column(db.String,nullable=False)
-    image = db.Column(db.String, nullable=True)
-    location = db.Column(db.String)
+    image = db.Column(db.String, nullable=False)
+    location = db.Column(db.String, nullable=False)
 
     # Foreign Key
     seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
