@@ -17,7 +17,7 @@ class User(db.Model, SerializerMixin):
     email = db.Column(db.String, unique=True, nullable=False)
     password = db.Column(db.String, nullable=False)
     role = db.Column(db.String, nullable=False)
-    image = db.Column(db.String, nullable=True)
+    image = db.Column(db.String, nullable=False)
     contact = db.Column(db.Integer, nullable=False)
 
      # relationships with store, review and complaint model
@@ -49,9 +49,16 @@ class User(db.Model, SerializerMixin):
         assert re.search(r"[0-9]", password), "Password should contain at least one digit"
         assert re.search(r"[!@#$%^&*(),.?\":{}|<>]", password), "Password should contain at least one special character"
         return password
-    
-    def __repr__(self):
-        return f"<User {self.id}, {self.username}, {self.contact},{self.image},{self.role}, {self.email}, {self.password}>"
+      
+    @validates('contact')
+    def validate_contact(self, key, contact):
+         assert contact.isdigit(), "Contact number must only contain digits"
+         assert 10 <= len(contact) <= 15, "Contact number length must be between 10 to 15 digits"
+         assert not any(char in "!@#$%^&*(),.?\":{}|<>" for char in contact), "Contact number cannot contain special characters"
+         assert not contact.strip(), "Contact number cannot contain whitespace"
+         
+         def __repr__(self):
+             return f"<User {self.id}, {self.username}, {self.contact},{self.image},{self.role}, {self.email}, {self.password}>"
     
 
 # Store Model
@@ -61,8 +68,8 @@ class Store(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     store_name = db.Column(db.String, nullable=False, unique=True)
     description = db.Column(db.String,nullable=False)
-    image = db.Column(db.String, nullable=True)
-    location = db.Column(db.String)
+    image = db.Column(db.String, nullable=False)
+    location = db.Column(db.String, nullable=False)
 
     # Foreign Key
     seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -81,7 +88,12 @@ class Store(db.Model, SerializerMixin):
          if not 5 <= len(description) <= 150:
              raise ValueError("Description must be between 5 and 150 characters.")
          return description
-
+   
+    @validates('location')
+    def validate_location(self, key, location):
+        if len(location) > 30:
+            raise ValueError("Location must be 30 characters or fewer.")
+        return location
 
 # Complaint Model
 class Complaint(db.Model, SerializerMixin):
@@ -147,6 +159,17 @@ class Review(db.Model, SerializerMixin):
 
     # Serialization rules
     serialize_rules = ('-buyer,reviews','-product.reviews')
+
+    @validates('rating')
+    def validate_rating(self, key, rating):
+        if not 1 <=len(rating) <= 5:
+            raise ValueError("Rating must be between 1 and 5")
+        return rating
+    
+    @validates('description')
+    def validate_description(self, key , description):
+        if not 5 <= len(description) <= 150:
+            raise ValueError("Description must be between 5 and 150 characters")
     
 
 # Wishlist Model
@@ -170,13 +193,13 @@ class Product(db.Model, SerializerMixin):
     __tablename__= 'products'
 
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String)
-    description = db.Column(db.Text)
+    title = db.Column(db.String,nullable=False)
+    description = db.Column(db.String,nullable=False)
     seller_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    price = db.Column(db.String)
+    price = db.Column(db.Float,nullable=False)
     store_id = db.Column(db.Integer, db.ForeignKey('stores.id'))
-    quantity = db.Column(db.Integer)
-    images = db.Column(db.Text)
+    quantity = db.Column(db.Integer, nullable=False)
+    images = db.Column(db.String, nullable=False)
  
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id')) 
 
@@ -190,16 +213,39 @@ class Product(db.Model, SerializerMixin):
     #serialize
     serialize_rules = ( ' -reviews.product', '-cart.product', '-wishlist.product','-store.products','-category.products')
 
+#validation
+    @validates('title')
+    def validate_title(self, key, value):
+        if len(value) > 10:
+            raise ValueError("Title should not exceed 10 characters.")
+        return value
+
+    # Validate description length and word count
+    @validates('description')
+    def validate_description(self, key, value):
+        word_count = len(re.findall(r'\w+', value))
+        if word_count < 5 or word_count > 150:
+            raise ValueError("Description should be between 5 to 150 words.")
+        return value
 
 # Category Model
 class Category(db.Model, SerializerMixin):
     __tablename__= 'categories'
 
     id = db.Column(db.Integer, primary_key=True)
-    category_name = db.Column(db.String)
+    category_name = db.Column(db.String,nullable=False)
     products = db.relationship('Product', back_populates='category', lazy=True)
 
     #serialize 
     serialize_rules= ('-products.category')
+
+    #validation
+    @validates('category_name')
+    def validate_category_name(self, key, value):
+        allowed_categories = ['Electronics', 'Health and beauty', 'Food and Beverages', 'Groceries','Stationery']
+        if value not in allowed_categories:
+            raise ValueError("Category name must be one of the following: Electronics, Health and beauty, Food and Beverages, Groceries,Stationery.")
+        return value
+
 
     
