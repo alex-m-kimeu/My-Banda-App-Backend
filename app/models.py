@@ -50,6 +50,8 @@ class User(db.Model, SerializerMixin):
         assert re.search(r"[!@#$%^&*(),.?\":{}|<>]", password), "Password should contain at least one special character"
         return password
     
+    
+
     def __repr__(self):
         return f"<User {self.id}, {self.username}, {self.contact},{self.image},{self.role}, {self.email}, {self.password}>"
     
@@ -81,7 +83,12 @@ class Store(db.Model, SerializerMixin):
          if not 5 <= len(description) <= 150:
              raise ValueError("Description must be between 5 and 150 characters.")
          return description
-
+   
+    @validates('location')
+    def validate_location(self, key, location):
+        if len(location) > 30:
+            raise ValueError("Location must be 30 characters or fewer.")
+        return location
 
 # Complaint Model
 class Complaint(db.Model, SerializerMixin):
