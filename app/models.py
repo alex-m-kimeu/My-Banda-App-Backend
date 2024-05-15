@@ -53,11 +53,13 @@ class User(db.Model, SerializerMixin):
     
     @validates('contact')
     def validate_contact(self, key, contact):
-        assert re.match(r"^\d{10,15}$", contact), "Invalid contact number format"
-        return contact
-    
-    def __repr__(self):
-        return f"<User {self.id}, {self.username}, {self.contact},{self.image},{self.role}, {self.email}, {self.password}>"
+         assert contact.isdigit(), "Contact number must only contain digits"
+         assert 10 <= len(contact) <= 15, "Contact number length must be between 10 to 15 digits"
+         assert not any(char in "!@#$%^&*(),.?\":{}|<>" for char in contact), "Contact number cannot contain special characters"
+         assert not contact.strip(), "Contact number cannot contain whitespace"
+         
+         def __repr__(self):
+             return f"<User {self.id}, {self.username}, {self.contact},{self.image},{self.role}, {self.email}, {self.password}>"
     
 
 # Store Model
