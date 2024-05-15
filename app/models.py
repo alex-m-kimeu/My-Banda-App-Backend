@@ -173,7 +173,7 @@ class Product(db.Model, SerializerMixin):
     title = db.Column(db.String,nullable=False)
     description = db.Column(db.Text,nullable=False)
     seller_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    price = db.Column(db.String,nullable=False)
+    price = db.Column(db.Float,nullable=False)
     store_id = db.Column(db.Integer, db.ForeignKey('stores.id'))
     quantity = db.Column(db.Integer, nullable=False)
     images = db.Column(db.String, nullable=False)
