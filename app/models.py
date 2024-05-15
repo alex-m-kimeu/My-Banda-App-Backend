@@ -202,7 +202,7 @@ class Product(db.Model, SerializerMixin):
     def validate_description(self, key, value):
         word_count = len(re.findall(r'\w+', value))
         if word_count < 5 or word_count > 150:
-            raise ValueError("Description should be between 5 to 150 words.")
+            raise ValueError("Description should be between 5 to 100 words.")
         return value
 
 # Category Model
