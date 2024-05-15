@@ -18,7 +18,7 @@ class User(db.Model, SerializerMixin):
     password = db.Column(db.String, nullable=False)
     role = db.Column(db.String, nullable=False)
     image = db.Column(db.String, nullable=False)
-    contact = db.Column(db.Integer, nullable=False)
+    contact = db.Column(db.Integer, unique=True, nullable=False)
 
      # relationships with store, review and complaint model
     store = db.relationship('Store', back_populates= 'seller', uselist=False, cascade="all, delete-orphan")
@@ -50,15 +50,15 @@ class User(db.Model, SerializerMixin):
         assert re.search(r"[!@#$%^&*(),.?\":{}|<>]", password), "Password should contain at least one special character"
         return password
       
-    @validates('contact')
-    def validate_contact(self, key, contact):
-         assert contact.isdigit(), "Contact number must only contain digits"
-         assert 10 <= len(contact) <= 15, "Contact number length must be between 10 to 15 digits"
-         assert not any(char in "!@#$%^&*(),.?\":{}|<>" for char in contact), "Contact number cannot contain special characters"
-         assert not contact.strip(), "Contact number cannot contain whitespace"
+    # @validates('contact')
+    # def validate_contact(self, key, contact):
+    #      assert contact.isdigit(), "Contact number must only contain digits"
+    #      assert 10 <= len(contact) <= 15, "Contact number length must be between 10 to 15 digits"
+    #      assert not any(char in "!@#$%^&*(),.?\":{}|<>" for char in contact), "Contact number cannot contain special characters"
+    #      assert not contact.strip(), "Contact number cannot contain whitespace"
          
-         def __repr__(self):
-             return f"<User {self.id}, {self.username}, {self.contact},{self.image},{self.role}, {self.email}, {self.password}>"
+    #      def __repr__(self):
+    #          return f"<User {self.id}, {self.username}, {self.contact},{self.image},{self.role}, {self.email}, {self.password}>"
     
 
 # Store Model
@@ -147,7 +147,7 @@ class Review(db.Model, SerializerMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     rating = db.Column(db.Integer, nullable=False)
-    description = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.String, nullable=False)
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
     buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -162,14 +162,14 @@ class Review(db.Model, SerializerMixin):
 
     @validates('rating')
     def validate_rating(self, key, rating):
-        if not 1 <=len(rating) <= 5:
+        if not 1 <= rating <= 5:
             raise ValueError("Rating must be between 1 and 5")
         return rating
     
-    @validates('description')
-    def validate_description(self, key , description):
-        if not 5 <= len(description) <= 150:
-            raise ValueError("Description must be between 5 and 150 characters")
+    # @validates('description')
+    # def validate_description(self, key , description):
+    #     if not 5 <= len(description) <= 500:
+    #         raise ValueError("Description must be between 5 and 150 characters")
     
 
 # Wishlist Model
@@ -185,7 +185,7 @@ class Wishlist(db.Model, SerializerMixin):
     products = db.relationship('Product', back_populates='wishlist')
 
     #Serialization rules
-    serialize_rules = ('-product.wishlist')
+    serialize_rules = ('-products')
     
 
 # Product Model
@@ -195,7 +195,7 @@ class Product(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String,nullable=False)
     description = db.Column(db.String,nullable=False)
-    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    # seller_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     price = db.Column(db.Float,nullable=False)
     store_id = db.Column(db.Integer, db.ForeignKey('stores.id'))
     quantity = db.Column(db.Integer, nullable=False)
@@ -211,7 +211,7 @@ class Product(db.Model, SerializerMixin):
     category = db.relationship('Category', back_populates='products')
 
     #serialize
-    serialize_rules = ( ' -reviews.product', '-cart.product', '-wishlist.product','-store.products','-category.products')
+    serialize_rules = ('-cart.product', '-wishlist.product','-store.products','-category.products')
 
 #validation
     @validates('title')
@@ -233,11 +233,12 @@ class Category(db.Model, SerializerMixin):
     __tablename__= 'categories'
 
     id = db.Column(db.Integer, primary_key=True)
-    category_name = db.Column(db.String,nullable=False)
+    category_name = db.Column(db.String, nullable=False)
+    
     products = db.relationship('Product', back_populates='category', lazy=True)
 
     #serialize 
-    serialize_rules= ('-products.category')
+    # serialize_rules= ('-products.category')
 
     #validation
     @validates('category_name')
