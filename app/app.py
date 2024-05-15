@@ -112,14 +112,10 @@ api.add_resource(TokenRefresh, '/refresh-token')
 # USERS (get post)
 class Users(Resource):
     @jwt_required()
-    def get(self):
-        claims = get_jwt_identity()
-        if claims['role'] != 'admin':
-            return {"error": "Only admins view users"}, 403
-        
+    def get(self):        
         users = [user.to_dict() for user in User.query.all()]
         return make_response(users,200)
-       
+      
     def post(self):
         data = request.get_json()
         if not data:
@@ -165,31 +161,33 @@ class Products(Resource):
 
         title = data.get('title')
         description = data.get('description')
-        seller_id = data.get('seller_id')
+        store_id = data.get('store_id')
         price = data.get('price')
         quantity = data.get('quantity')
         category_id = data.get('category_id')
+        images=data.get('images')
 
         # Validate input data
-        if not all([title, description, seller_id, price, quantity, category_id]):
-            return {"error": "Missing required fields"}, 400
+        # if not all([title, description, seller_id, price, quantity, category_id]):
+        #     return {"error": "Missing required fields"}, 400
 
-        seller = User.query.get(seller_id)
-        category = Category.query.get(category_id)
+        # seller = User.query.get(seller_id)
+        # category = Category.query.get(category_id)
 
-        if not seller:
-            return {"error": "Seller not found"}, 404
+        # if not seller:
+        #     return {"error": "Seller not found"}, 404
 
-        if not category:
-            return {"error": "Category not found"}, 404
+        # if not category:
+        #     return {"error": "Category not found"}, 404
 
         product = Product(
             title=title,
             description=description,
-            seller_id=seller_id,
+            store_id=store_id,
             price=price,
             quantity=quantity,
-            category_id=category_id
+            category_id=category_id,
+            images=images
         )
 
         db.session.add(product)
@@ -225,28 +223,29 @@ class ProductsByID(Resource):
         data = request.get_json()
 
         # Validate input data
-        if not data:
-            return {"error": "Missing data in request"}, 400
+        # if not data:
+        #     return {"error": "Missing data in request"}, 400
 
-        valid_fields = ['title', 'description', 'seller_id', 'price', 'quantity', 'category_id']
-        if not all(field in data for field in valid_fields):
-            return {"error": "Missing or invalid fields in request"}, 400
+        # valid_fields = ['title', 'description', 'seller_id', 'price', 'quantity', 'category_id']
+        # if not all(field in data for field in valid_fields):
+        #     return {"error": "Missing or invalid fields in request"}, 400
 
-        seller = User.query.get(data.get('seller_id'))
-        category = Category.query.get(data.get('category_id'))
+        # seller = User.query.get(data.get('seller_id'))
+        # category = Category.query.get(data.get('category_id'))
 
-        if not seller:
-            return {"error": "Seller not found"}, 404
+        # if not seller:
+        #     return {"error": "Seller not found"}, 404
 
-        if not category:
-            return {"error": "Category not found"}, 404
+        # if not category:
+        #     return {"error": "Category not found"}, 404
 
         product.title = data.get('title')
         product.description = data.get('description')
-        product.seller_id = data.get('seller_id')
+        product.store_id = data.get('store_id')
         product.price = data.get('price')
         product.quantity = data.get('quantity')
         product.category_id = data.get('category_id')
+        product.images = data.get('images')
 
         db.session.commit()
         return make_response(product.to_dict(), 200)
@@ -268,7 +267,7 @@ class ProductsByID(Resource):
 
 api.add_resource(ProductsByID, '/products/<int:id>')
 
-# USERBYID (get patch delete)
+# User By ID (get patch delete)
 class UserByID(Resource):
     @jwt_required()
     def get(self, id):
@@ -336,7 +335,8 @@ class Stores(Resource):
             store_name=data['store_name'], 
             description=data['description'],
             image=data['image'],
-            location=data['location']
+            location=data['location'],
+            seller_id=data['seller_id']
             )
         
         db.session.add(store)
@@ -346,7 +346,7 @@ class Stores(Resource):
 
 api.add_resource(Stores, '/stores')
 
-# USERBYID (get patch delete)
+# Store By ID (get patch delete)
 class StoreByID(Resource):
     @jwt_required()
     def get(self,id):
@@ -418,16 +418,23 @@ class Categories(Resource):
         if not data:
             return {"error": "Missing data in request"}, 400
 
-        category_name = data['category_name']
-        if not category_name:
-            return {"error": "Missing category name"}, 400
+        # category_name = data['category_name']
+        # if not category_name:
+        #     return {"error": "Missing category name"}, 400
 
-        category = Category(category_name=category_name)
+        # category = Category(category_name=category_name)
 
+        # db.session.add(category)
+        # db.session.commit()
+        # return make_response(category.to_dict(), 201)
+        
+        category = Category(
+            category_name=data['category_name']
+            )
+        
         db.session.add(category)
         db.session.commit()
         return make_response(category.to_dict(), 201)
-
 
 api.add_resource(Categories, '/categories')
 
@@ -495,8 +502,8 @@ class Reviews(Resource):
         reviews = Review(
             rating=data['rating'], 
             description=data['description'],
-            timestamp=data['timestamp'],
-
+            buyer_id=data['buyer_id'],
+            product_id=data['product_id']
             )
         
         db.session.add(reviews)
@@ -529,7 +536,6 @@ class ReviewsByID(Resource):
             try:   
                 reviews.rating = data['rating']
                 reviews.description= data['description']
-                reviews.timestamp = data['timestamp']
         
                 db.session.commit()
                 return make_response(reviews.to_dict(), 200)
