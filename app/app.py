@@ -80,8 +80,6 @@ class SignUp(Resource):
             email=data['email'],
             role=data['role'],
             password=hashed_password
-            # contact=data['contact'],
-            # image=data['image']
             )
         
         db.session.add(user)
@@ -97,6 +95,7 @@ class SignUp(Resource):
 
 api.add_resource(SignUp, '/signup')
 
+# Refresh Token
 class TokenRefresh(Resource):
     @jwt_required(refresh=True)
     def post(self):
@@ -109,7 +108,7 @@ class TokenRefresh(Resource):
 
 api.add_resource(TokenRefresh, '/refresh-token')
 
-# USERS (get post)
+# Users (get post)
 class Users(Resource):
     @jwt_required()
     def get(self):        
@@ -127,8 +126,6 @@ class Users(Resource):
             email=data['email'],
             role=data['role'],
             password=hashed_password
-            # contact=data['contact'],
-            # image=data['image']
             )
         
         db.session.add(user)
@@ -136,136 +133,6 @@ class Users(Resource):
         return make_response(user.to_dict(), 201)
     
 api.add_resource(Users, '/users')
-
-
-# Routes for Products
-class Products(Resource):
-    @jwt_required()
-    def get(self):
-        claims = get_jwt_identity()
-        if claims['role'] != 'seller' and claims['role'] != 'buyer':
-            return {"error": "Only sellers and buyers can view products"}, 403
-        
-        products = [product.to_dict() for product in Product.query.all()]
-        return make_response(products, 200)
-
-    @jwt_required()
-    def post(self):
-        claims = get_jwt_identity()
-        if claims['role'] != 'seller':
-            return {"error": "Only sellers can post new products"}, 403
-        
-        data = request.get_json()
-        if not data:
-            return {"error": "Missing data in request"}, 400
-
-        title = data.get('title')
-        description = data.get('description')
-        store_id = data.get('store_id')
-        price = data.get('price')
-        quantity = data.get('quantity')
-        category_id = data.get('category_id')
-        images=data.get('images')
-
-        # Validate input data
-        # if not all([title, description, seller_id, price, quantity, category_id]):
-        #     return {"error": "Missing required fields"}, 400
-
-        # seller = User.query.get(seller_id)
-        # category = Category.query.get(category_id)
-
-        # if not seller:
-        #     return {"error": "Seller not found"}, 404
-
-        # if not category:
-        #     return {"error": "Category not found"}, 404
-
-        product = Product(
-            title=title,
-            description=description,
-            store_id=store_id,
-            price=price,
-            quantity=quantity,
-            category_id=category_id,
-            images=images
-        )
-
-        db.session.add(product)
-        db.session.commit()
-        return make_response(product.to_dict(), 201)
-
-
-api.add_resource(Products, '/products')
-
-class ProductsByID(Resource):
-    @jwt_required()
-    def get(self, id):
-        claims = get_jwt_identity()
-        if claims['role'] != 'seller' and claims['role'] != 'buyer':
-            return {"error": "Only sellers and buyers can view products"}, 403
-        
-        product = Product.query.get(id)
-        if product:
-            return make_response(product.to_dict(), 200)
-        else:
-            return {"error": "Product not found"}, 404
-
-    @jwt_required()
-    def patch(self, id):
-        claims = get_jwt_identity()
-        if claims['role'] != 'seller':
-            return {"error": "Only sellers can edit products"}, 403
-        
-        product = Product.query.get(id)
-        if not product:
-            return {"error": "Product not found"}, 404
-
-        data = request.get_json()
-
-        # Validate input data
-        # if not data:
-        #     return {"error": "Missing data in request"}, 400
-
-        # valid_fields = ['title', 'description', 'seller_id', 'price', 'quantity', 'category_id']
-        # if not all(field in data for field in valid_fields):
-        #     return {"error": "Missing or invalid fields in request"}, 400
-
-        # seller = User.query.get(data.get('seller_id'))
-        # category = Category.query.get(data.get('category_id'))
-
-        # if not seller:
-        #     return {"error": "Seller not found"}, 404
-
-        # if not category:
-        #     return {"error": "Category not found"}, 404
-
-        product.title = data.get('title')
-        product.description = data.get('description')
-        product.store_id = data.get('store_id')
-        product.price = data.get('price')
-        product.quantity = data.get('quantity')
-        product.category_id = data.get('category_id')
-        product.images = data.get('images')
-
-        db.session.commit()
-        return make_response(product.to_dict(), 200)
-
-    @jwt_required()
-    def delete(self, id):
-        claims = get_jwt_identity()
-        if claims['role'] != 'seller':
-            return {"error": "Only sellers can delete products"}, 403
-        
-        product = Product.query.get(id)
-        if not product:
-            return {"error": "Product not found"}, 404
-
-        db.session.delete(product)
-        db.session.commit()
-        return {"message": "Product deleted successfully"}, 200
-
-
-api.add_resource(ProductsByID, '/products/<int:id>')
 
 # User By ID (get patch delete)
 class UserByID(Resource):
@@ -314,7 +181,105 @@ class UserByID(Resource):
     
 api.add_resource(UserByID, '/user/<int:id>')
 
-# STORE (get post)
+# Products (get post)
+class Products(Resource):
+    @jwt_required()
+    def get(self):
+        claims = get_jwt_identity()
+        if claims['role'] != 'seller' and claims['role'] != 'buyer':
+            return {"error": "Only sellers and buyers can view products"}, 403
+        
+        products = [product.to_dict() for product in Product.query.all()]
+        return make_response(products, 200)
+
+    @jwt_required()
+    def post(self):
+        claims = get_jwt_identity()
+        if claims['role'] != 'seller':
+            return {"error": "Only sellers can post new products"}, 403
+        
+        data = request.get_json()
+        if not data:
+            return {"error": "Missing data in request"}, 400
+
+        title = data.get('title')
+        description = data.get('description')
+        store_id = data.get('store_id')
+        price = data.get('price')
+        quantity = data.get('quantity')
+        category_id = data.get('category_id')
+        images=data.get('images')
+
+        product = Product(
+            title=title,
+            description=description,
+            store_id=store_id,
+            price=price,
+            quantity=quantity,
+            category_id=category_id,
+            images=images
+        )
+
+        db.session.add(product)
+        db.session.commit()
+        return make_response(product.to_dict(), 201)
+
+api.add_resource(Products, '/products')
+
+# Products By ID (get patch delete)
+class ProductsByID(Resource):
+    @jwt_required()
+    def get(self, id):
+        claims = get_jwt_identity()
+        if claims['role'] != 'seller' and claims['role'] != 'buyer':
+            return {"error": "Only sellers and buyers can view products"}, 403
+        
+        product = Product.query.get(id)
+        if product:
+            return make_response(product.to_dict(), 200)
+        else:
+            return {"error": "Product not found"}, 404
+
+    @jwt_required()
+    def patch(self, id):
+        claims = get_jwt_identity()
+        if claims['role'] != 'seller':
+            return {"error": "Only sellers can edit products"}, 403
+        
+        product = Product.query.get(id)
+        if not product:
+            return {"error": "Product not found"}, 404
+
+        data = request.get_json()
+
+        product.title = data.get('title')
+        product.description = data.get('description')
+        product.store_id = data.get('store_id')
+        product.price = data.get('price')
+        product.quantity = data.get('quantity')
+        product.category_id = data.get('category_id')
+        product.images = data.get('images')
+
+        db.session.commit()
+        return make_response(product.to_dict(), 200)
+
+    @jwt_required()
+    def delete(self, id):
+        claims = get_jwt_identity()
+        if claims['role'] != 'seller':
+            return {"error": "Only sellers can delete products"}, 403
+        
+        product = Product.query.get(id)
+        if not product:
+            return {"error": "Product not found"}, 404
+
+        db.session.delete(product)
+        db.session.commit()
+        return {"message": "Product deleted successfully"}, 200
+
+api.add_resource(ProductsByID, '/products/<int:id>')
+
+# Store (get post)
 class Stores(Resource):
     @jwt_required()
     def get(self):
@@ -342,7 +307,6 @@ class Stores(Resource):
         db.session.add(store)
         db.session.commit()
         return make_response(store.to_dict(), 201)
-
 
 api.add_resource(Stores, '/stores')
 
@@ -397,7 +361,7 @@ class StoreByID(Resource):
     
 api.add_resource(StoreByID, '/store/<int:id>')
 
-#Route for Categories
+# Categories (get post)
 class Categories(Resource):
     @jwt_required()
     def get(self):
@@ -417,16 +381,6 @@ class Categories(Resource):
         data = request.get_json()
         if not data:
             return {"error": "Missing data in request"}, 400
-
-        # category_name = data['category_name']
-        # if not category_name:
-        #     return {"error": "Missing category name"}, 400
-
-        # category = Category(category_name=category_name)
-
-        # db.session.add(category)
-        # db.session.commit()
-        # return make_response(category.to_dict(), 201)
         
         category = Category(
             category_name=data['category_name']
@@ -438,6 +392,7 @@ class Categories(Resource):
 
 api.add_resource(Categories, '/categories')
 
+# Categories By ID (get patch delete)
 class CategoriesByID(Resource):
     @jwt_required()
     def get(self, id):
@@ -482,7 +437,7 @@ class CategoriesByID(Resource):
 
 api.add_resource(CategoriesByID, '/categories/<int:id>')
 
-
+# Reviews (get post)
 class Reviews(Resource):
     @jwt_required()
     def get(self):
@@ -512,6 +467,7 @@ class Reviews(Resource):
 
 api.add_resource(Reviews, '/reviews')
 
+# Reviews By ID (get patch delete)
 class ReviewsByID(Resource):
     @jwt_required()
     def get(self,id):
@@ -561,7 +517,7 @@ class ReviewsByID(Resource):
 
 api.add_resource(ReviewsByID, '/review/<int:id>')
 
-
+# Wishlist (get post)
 class Wishlists(Resource):
     @jwt_required()
     def get(self):
@@ -592,6 +548,7 @@ class Wishlists(Resource):
         
 api.add_resource(Wishlists, '/wishlists')
 
+# Wishlist By ID (get patch delete)
 class WishlistByID(Resource):
     @jwt_required()
     def get(self, id):
@@ -643,7 +600,7 @@ class WishlistByID(Resource):
 
 api.add_resource(WishlistByID,'/wishlists/<int:id>')
 
-# Complaint (get post)
+# Complaints (get post)
 class Complaints(Resource):
     @jwt_required()
     def get(self):
@@ -677,7 +634,7 @@ class Complaints(Resource):
 
 api.add_resource(Complaints, '/complaints')
 
-# ComplaintByID (get patch delete)
+# Complaints By ID (get patch delete)
 class ComplaintByID(Resource):
     @jwt_required()
     def get(self, id):
@@ -693,18 +650,17 @@ class ComplaintByID(Resource):
     @jwt_required()
     def patch(self, id):
         claims = get_jwt_identity()
-        if claims['role'] != 'buyer' and claims['role'] != 'admin':
-            return {"error": "Only buyers and admin can edit complaints"}, 403
+        if claims['role'] != 'admin':
+            return {"error": "Only admin can edit complaints"}, 403
         
         complaint = Complaint.query.filter_by(id=id).first()
         if complaint is None:
             return {"error": "Complaint not found"}, 404
         
         data = request.get_json()
-        if all(key in data for key in ['subject', 'body']):
+        if all(key in data for key in ['status']):
             try:
-                complaint.subject = data['subject']
-                complaint.body = data['body']
+                complaint.status = data['status']
                 db.session.commit()
                 return make_response(complaint.to_dict(), 200)
             except AssertionError:
@@ -760,7 +716,7 @@ class Carts(Resource):
 
 api.add_resource(Carts, '/carts')
 
-# CartByID (get delete)
+# Cart By ID (get patch delete)
 class CartByID(Resource):
     @jwt_required()
     def get(self, id):

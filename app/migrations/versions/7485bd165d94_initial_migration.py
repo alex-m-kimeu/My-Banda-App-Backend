@@ -1,8 +1,8 @@
 """Initial migration
 
-Revision ID: 1db28f045d24
+Revision ID: 7485bd165d94
 Revises: 
-Create Date: 2024-05-15 21:08:05.926197
+Create Date: 2024-05-16 15:49:42.937167
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '1db28f045d24'
+revision = '7485bd165d94'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -51,9 +51,10 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('subject', sa.String(), nullable=False),
     sa.Column('body', sa.String(), nullable=False),
+    sa.Column('status', sa.String(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('store_id', sa.Integer(), nullable=False),
     sa.Column('buyer_id', sa.Integer(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.ForeignKeyConstraint(['buyer_id'], ['users.id'], ),
     sa.ForeignKeyConstraint(['store_id'], ['stores.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -63,9 +64,9 @@ def upgrade():
     sa.Column('title', sa.String(), nullable=False),
     sa.Column('description', sa.String(), nullable=False),
     sa.Column('price', sa.Float(), nullable=False),
-    sa.Column('store_id', sa.Integer(), nullable=True),
     sa.Column('quantity', sa.Integer(), nullable=False),
     sa.Column('images', sa.String(), nullable=False),
+    sa.Column('store_id', sa.Integer(), nullable=True),
     sa.Column('category_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['category_id'], ['categories.id'], ),
     sa.ForeignKeyConstraint(['store_id'], ['stores.id'], ),
@@ -74,6 +75,8 @@ def upgrade():
     op.create_table('carts',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('product_id', sa.Integer(), nullable=False),
+    sa.Column('buyer_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['buyer_id'], ['users.id'], ),
     sa.ForeignKeyConstraint(['product_id'], ['products.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -91,6 +94,8 @@ def upgrade():
     op.create_table('wishlists',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('product_id', sa.Integer(), nullable=False),
+    sa.Column('buyer_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['buyer_id'], ['users.id'], ),
     sa.ForeignKeyConstraint(['product_id'], ['products.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
