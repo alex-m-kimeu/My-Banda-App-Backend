@@ -20,12 +20,14 @@ class User(db.Model, SerializerMixin):
     image = db.Column(db.String, nullable=True)
     contact = db.Column(db.Integer, unique=True, nullable=True)
 
-     # relationships with store, review and complaint model
+     # Relationships
     store = db.relationship('Store', back_populates= 'seller', uselist=False, cascade="all, delete-orphan")
     reviews = db.relationship('Review', back_populates= 'buyer', cascade="all, delete-orphan")
     complaints = db.relationship('Complaint', back_populates= 'buyer', cascade="all, delete-orphan")
+    wishlist = db.relationship('Wishlist', back_populates='users', cascade="all, delete-orphan")
+    cart = db.relationship('Cart', back_populates='buyer', cascade="all, delete-orphan")
 
-    # serialization rules
+    # Serialization rules
     serialize_rules= ('-stores.seller','-reviews', '-complaints',)
 
     # validations
@@ -49,22 +51,12 @@ class User(db.Model, SerializerMixin):
         assert re.search(r"[0-9]", password), "Password should contain at least one digit"
         assert re.search(r"[!@#$%^&*(),.?\":{}|<>]", password), "Password should contain at least one special character"
         return password
-      
-    # @validates('contact')
-    # def validate_contact(self, key, contact):
-    #      assert contact.isdigit(), "Contact number must only contain digits"
-    #      assert 10 <= len(contact) <= 15, "Contact number length must be between 10 to 15 digits"
-    #      assert not any(char in "!@#$%^&*(),.?\":{}|<>" for char in contact), "Contact number cannot contain special characters"
-    #      assert not contact.strip(), "Contact number cannot contain whitespace"
-         
-    #      def __repr__(self):
-    #          return f"<User {self.id}, {self.username}, {self.contact},{self.image},{self.role}, {self.email}, {self.password}>"
     
-
 # Store Model
 class Store(db.Model, SerializerMixin):
     __tablename__= 'stores'
 
+    # Columns
     id = db.Column(db.Integer, primary_key=True)
     store_name = db.Column(db.String, nullable=False, unique=True)
     description = db.Column(db.String,nullable=False)
@@ -74,179 +66,193 @@ class Store(db.Model, SerializerMixin):
     # Foreign Key
     seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
-    # Relationship with seller and complaints
+    # Relationship
     seller = db.relationship('User', back_populates='store')
     complaints = db.relationship('Complaint', back_populates='store')
     products = db.relationship('Product', back_populates='store')
 
-    # serialization rules
-    serialize_rules= ('-seller','-complaints.store', '-products.store')
+    # Serialization rules
+    serialize_rules= ('-seller','-complaints', '-products.store')
 
-    # validation
+    # validations
     @validates('description')
     def validate_description(self, key, description):
-         if not 5 <= len(description) <= 150:
-             raise ValueError("Description must be between 5 and 150 characters.")
-         return description
+        word_count = len(re.findall(r'\w+', description))
+        if word_count < 2 or word_count > 20:
+            raise ValueError("Description should be between 2 to 20 words.")
+        return description
    
     @validates('location')
     def validate_location(self, key, location):
-        if len(location) > 30:
-            raise ValueError("Location must be 30 characters or fewer.")
+        word_count = len(re.findall(r'\w+', location))
+        if word_count < 1 or word_count > 10:
+            raise ValueError("Location should be between 1 to 10 words.")
         return location
 
 # Complaint Model
 class Complaint(db.Model, SerializerMixin):
     __tablename__ = 'complaints'
 
+    # Columns
     id = db.Column(db.Integer, primary_key=True)
     subject = db.Column(db.String, nullable=False)
     body = db.Column(db.String, nullable=False)
+    status = db.Column(db.String, nullable=False, default='pending')
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now(timezone.utc))
+    
+    # Foreign Keys
     store_id = db.Column(db.Integer, db.ForeignKey('stores.id'), nullable=False)
     buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now(timezone.utc))
-
+    
+    # Relationships
     store = db.relationship('Store', back_populates='complaints')
     buyer = db.relationship('User', back_populates='complaints')
 
-    serialize_rules=('-store.complaint,' '-buyer.complaint')
+    # Serialization rules
+    serialize_rules=('-store', '-buyer.complaint')
 
+    # Validations
     @validates('subject')
     def validate_subject(self, key, subject):
-        if not 5 <= len(subject) <= 100:
-            raise ValueError("Subject must be between 5 and 100 characters.")
+        word_count = len(re.findall(r'\w+', subject))
+        if word_count < 2 or word_count > 10:
+            raise ValueError("Subject should be between 2 to 10 words.")
         return subject
 
     @validates('body')
     def validate_body(self, key, body):
-        if not 10 <= len(body) <= 1000:
-            raise ValueError("Body must be between 10 and 1000 characters.")
+        word_count = len(re.findall(r'\w+', body))
+        if word_count < 5 or word_count > 150:
+            raise ValueError("Body should be between 5 to 150 words.")
         return body
-
+    
+    @validates('status')
+    def validate_status(self, key, status):
+        if status != 'pending' and status != 'resolved' and status != 'rejected':
+            raise ValueError("Status must be pending, resolved or rejected.")
+        return status
     
 # Cart Model
 class Cart(db.Model, SerializerMixin):
     __tablename__ = 'carts'
 
+    # Columns
     id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)  # FK
-
-    product = db.relationship('Product', back_populates='cart')
-    serialize_rules = ('-product.cart')
-
-    @validates('product_id')
-    def validate_product_id(self, key, product_id):
-        if not isinstance(product_id, int) or product_id <= 0:
-            raise ValueError("Product ID must be a positive integer.")
-        return product_id
     
+    # Foreign Keys
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    # Relationships
+    product = db.relationship('Product', back_populates='cart')
+    buyer = db.relationship('User', back_populates='cart')   
 
 # Review Model
 class Review(db.Model, SerializerMixin):
     __tablename__= 'reviews'
 
+    # Columns
     id = db.Column(db.Integer, primary_key=True)
     rating = db.Column(db.Integer, nullable=False)
     description = db.Column(db.String, nullable=False)
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
+    # Foreign Keys
     buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
 
-    # Define relationships using back_populates
+    # Relationships
     buyer = db.relationship("User", back_populates="reviews")
     product = db.relationship("Product", back_populates="reviews")
 
     # Serialization rules
-    serialize_rules = ('-buyer,reviews','-product.reviews')
+    serialize_rules = ('-buyer','-product')
 
+    # Validations
     @validates('rating')
     def validate_rating(self, key, rating):
         if not 1 <= rating <= 5:
             raise ValueError("Rating must be between 1 and 5")
         return rating
     
-    # @validates('description')
-    # def validate_description(self, key , description):
-    #     if not 5 <= len(description) <= 500:
-    #         raise ValueError("Description must be between 5 and 150 characters")
+    @validates('description')
+    def validate_description(self, key , description):
+        word_count = len(re.findall(r'\w+', description))
+        if word_count < 2 or word_count > 150:
+            raise ValueError("Description should be between 2 to 150 words.")
+        return description
     
-
 # Wishlist Model
 class Wishlist(db.Model, SerializerMixin):
     __tablename__= 'wishlists'
 
+    # Columns
     id = db.Column(db.Integer, primary_key=True)
 
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'),nullable=False ) 
+    # Foreign Keys
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'),nullable=False )
+    buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
  
-  
-    # Define the bidirectional relationship using back_populates 
+    # Relationships 
     products = db.relationship('Product', back_populates='wishlist')
-
-    #Serialization rules
-    serialize_rules = ('-products')
+    users = db.relationship('User', back_populates='wishlist')
     
-
 # Product Model
 class Product(db.Model, SerializerMixin):
     __tablename__= 'products'
 
+    # Columns
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String,nullable=False)
     description = db.Column(db.String,nullable=False)
-    # seller_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     price = db.Column(db.Float,nullable=False)
-    store_id = db.Column(db.Integer, db.ForeignKey('stores.id'))
     quantity = db.Column(db.Integer, nullable=False)
     images = db.Column(db.String, nullable=False)
- 
+    
+    # Foreign Keys
+    store_id = db.Column(db.Integer, db.ForeignKey('stores.id'))
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id')) 
 
-
+    # Relationships
     reviews = db.relationship('Review', back_populates='product', lazy=True)
     cart = db.relationship('Cart', back_populates='product', lazy=True)
     wishlist = db.relationship('Wishlist', back_populates='products', lazy=True)
     store = db.relationship('Store', back_populates='products')
     category = db.relationship('Category', back_populates='products')
 
-    #serialize
-    serialize_rules = ('-cart.product', '-wishlist.product','-store.products','-category.products')
+    # Serialization rules
+    serialize_rules = ('-cart', '-wishlist','-store.products','-category')
 
-#validation
+    # Validations
     @validates('title')
-    def validate_title(self, key, value):
-        if len(value) > 10:
-            raise ValueError("Title should not exceed 10 characters.")
-        return value
+    def validate_title(self, key, title):
+        word_count = len(re.findall(r'\w+', title))
+        if word_count < 1 or word_count > 10:
+            raise ValueError("Title should be between 1 to 10 words.")
+        return title
 
-    # Validate description length and word count
     @validates('description')
-    def validate_description(self, key, value):
-        word_count = len(re.findall(r'\w+', value))
-        if word_count < 5 or word_count > 150:
+    def validate_description(self, key, description):
+        word_count = len(re.findall(r'\w+', description))
+        if word_count < 2 or word_count > 150:
             raise ValueError("Description should be between 5 to 150 words.")
-        return value
+        return description
 
 # Category Model
 class Category(db.Model, SerializerMixin):
     __tablename__= 'categories'
 
+    # Columns
     id = db.Column(db.Integer, primary_key=True)
     category_name = db.Column(db.String, nullable=False)
     
+    # Relationships
     products = db.relationship('Product', back_populates='category', lazy=True)
 
-    #serialize 
-    # serialize_rules= ('-products.category')
-
-    #validation
+    # Validations
     @validates('category_name')
-    def validate_category_name(self, key, value):
-        allowed_categories = ['Electronics', 'Health and beauty', 'Food and Beverages', 'Groceries','Stationery']
-        if value not in allowed_categories:
-            raise ValueError("Category name must be one of the following: Electronics, Health and beauty, Food and Beverages, Groceries,Stationery.")
-        return value
-
-
-    
+    def validate_category_name(self, key, category_name):
+        allowed_categories = ['Electronics', 'Clothing', 'Shoes', 'Personal Care and Beauty','Food and Beverage']
+        if category_name not in allowed_categories:
+            raise ValueError("Category name must be one of the following: Electronics, Clothing, Shoes, Personal Care and Beauty, Food and Beverage")
+        return category_name
