@@ -52,11 +52,11 @@ class User(db.Model, SerializerMixin):
         assert re.search(r"[0-9]", password), "Password should contain at least one digit"
         assert re.search(r"[!@#$%^&*(),.?\":{}|<>]", password), "Password should contain at least one special character"
         return password
-    
+      
     def upload_image(self, image):
         upload_result = cloudinary.uploader.upload(image)
         self.image = upload_result['url']
-    
+
 # Store Model
 class Store(db.Model, SerializerMixin):
     __tablename__= 'stores'
