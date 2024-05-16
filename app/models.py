@@ -4,6 +4,7 @@ from sqlalchemy.orm import validates, relationship
 from sqlalchemy.ext.associationproxy import association_proxy
 import re
 from datetime import datetime, timezone
+import cloudinary.uploader
 
 db = SQLAlchemy()
 
@@ -52,6 +53,10 @@ class User(db.Model, SerializerMixin):
         assert re.search(r"[!@#$%^&*(),.?\":{}|<>]", password), "Password should contain at least one special character"
         return password
     
+    def upload_image(self, image):
+        upload_result = cloudinary.uploader.upload(image)
+        self.image = upload_result['url']
+    
 # Store Model
 class Store(db.Model, SerializerMixin):
     __tablename__= 'stores'
@@ -88,6 +93,10 @@ class Store(db.Model, SerializerMixin):
         if word_count < 1 or word_count > 10:
             raise ValueError("Location should be between 1 to 10 words.")
         return location
+    
+    def upload_image(self, image):
+        upload_result = cloudinary.uploader.upload(image)
+        self.image = upload_result['url']
 
 # Complaint Model
 class Complaint(db.Model, SerializerMixin):
@@ -207,8 +216,8 @@ class Product(db.Model, SerializerMixin):
     description = db.Column(db.String,nullable=False)
     price = db.Column(db.Float,nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
-    images = db.Column(db.String, nullable=False)
-    
+    images = db.Column(db.JSON, nullable=False, default=[])
+
     # Foreign Keys
     store_id = db.Column(db.Integer, db.ForeignKey('stores.id'))
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id')) 
@@ -237,6 +246,11 @@ class Product(db.Model, SerializerMixin):
         if word_count < 2 or word_count > 150:
             raise ValueError("Description should be between 5 to 150 words.")
         return description
+
+    def upload_images(self, images):
+        for image in images:
+            upload_result = cloudinary.uploader.upload(image)
+            self.images.append(upload_result['url'])
 
 # Category Model
 class Category(db.Model, SerializerMixin):
