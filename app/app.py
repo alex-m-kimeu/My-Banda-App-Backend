@@ -28,17 +28,17 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Hardcode Admin Credentials
 def create_admin():
-    admin_email = "mybanda.admin@gmail.com"
+    admin_email = "banda.admin@gmail.com"
     admin = User.query.filter_by(email=admin_email).first()
     if not admin:
         hashed_password = bcrypt.generate_password_hash("Admin123!").decode('utf-8')
         admin = User(
-            username="Banda Admin", 
+            username="My Banda", 
             email=admin_email,
             role="admin",
             password=hashed_password,
             contact="1234567890",
-            image="https://www.pngegg.com/en/png-ogqel"
+            image="https://images.pexels.com/photos/12814838/pexels-photo-12814838.png?auto=compress&cs=tinysrgb&w=600"
         )
         db.session.add(admin)
         db.session.commit()
@@ -79,9 +79,9 @@ class SignUp(Resource):
             username=data['username'], 
             email=data['email'],
             role=data['role'],
-            password=hashed_password,
-            contact=data['contact'],
-            image=data['image']
+            password=hashed_password
+            # contact=data['contact'],
+            # image=data['image']
             )
         
         db.session.add(user)
@@ -126,9 +126,9 @@ class Users(Resource):
             username=data['username'], 
             email=data['email'],
             role=data['role'],
-            password=hashed_password,
-            contact=data['contact'],
-            image=data['image']
+            password=hashed_password
+            # contact=data['contact'],
+            # image=data['image']
             )
         
         db.session.add(user)

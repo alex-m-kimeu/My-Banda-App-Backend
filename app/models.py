@@ -17,8 +17,8 @@ class User(db.Model, SerializerMixin):
     email = db.Column(db.String, unique=True, nullable=False)
     password = db.Column(db.String, nullable=False)
     role = db.Column(db.String, nullable=False)
-    image = db.Column(db.String, nullable=False)
-    contact = db.Column(db.Integer, unique=True, nullable=False)
+    image = db.Column(db.String, nullable=True)
+    contact = db.Column(db.Integer, unique=True, nullable=True)
 
      # relationships with store, review and complaint model
     store = db.relationship('Store', back_populates= 'seller', uselist=False, cascade="all, delete-orphan")
@@ -26,7 +26,7 @@ class User(db.Model, SerializerMixin):
     complaints = db.relationship('Complaint', back_populates= 'buyer', cascade="all, delete-orphan")
 
     # serialization rules
-    serialize_rules= ('-stores.seller','-reviews.buyer', '-complaints.buyer',)
+    serialize_rules= ('-stores.seller','-reviews', '-complaints',)
 
     # validations
     @validates('email')
@@ -80,7 +80,7 @@ class Store(db.Model, SerializerMixin):
     products = db.relationship('Product', back_populates='store')
 
     # serialization rules
-    serialize_rules= ('-seller.store','-complaints.store', '-products.store')
+    serialize_rules= ('-seller','-complaints.store', '-products.store')
 
     # validation
     @validates('description')
