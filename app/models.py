@@ -161,7 +161,7 @@ class Cart(db.Model, SerializerMixin):
     
 
 class Cart_Product(db.Model, SerializerMixin):
-    __tablname__='cart_products'
+    __tablename__='cart_products'
 
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
@@ -226,7 +226,7 @@ class Wishlist(db.Model, SerializerMixin):
     serialize_only=('products',"-products.store", "-products.cart", "-products.wishlist_products", )
 
 class Wishlist_Product(db.Model, SerializerMixin):
-    __tablname__='wishlist_products'
+    __tablename__='wishlist_products'
 
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
