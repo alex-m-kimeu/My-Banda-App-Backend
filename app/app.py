@@ -11,7 +11,7 @@ import cloudinary
 import cloudinary.uploader
 import cloudinary.api
 
-from models import db, User, Store, Complaint, Cart, Review, Wishlist, Product, Category
+from models import db, User, Store, Complaint, Cart, Review, Wishlist, Product
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -219,7 +219,8 @@ class Products(Resource):
         store_id = data.get('store_id')
         price = data.get('price')
         quantity = data.get('quantity')
-        category_id = data.get('category_id')
+        category_name = data.get('category_name')
+
         images = data.get('images')
 
         product = Product(
@@ -228,7 +229,7 @@ class Products(Resource):
             store_id=store_id,
             price=price,
             quantity=quantity,
-            category_id=category_id
+            category_name=category_name
         )
 
         product.upload_images(images)
@@ -270,7 +271,7 @@ class ProductsByID(Resource):
         product.store_id = data.get('store_id', product.store_id)
         product.price = data.get('price', product.price)
         product.quantity = data.get('quantity', product.quantity)
-        product.category_id = data.get('category_id', product.category_id)
+        product.category_name = data.get('category_name', product.category_name)
 
         images = data.get('images')
         if images:
@@ -381,82 +382,6 @@ class StoreByID(Resource):
         return make_response({'message': 'Store deleted successfully'})
     
 api.add_resource(StoreByID, '/store/<int:id>')
-
-# Categories (get post)
-class Categories(Resource):
-    @jwt_required()
-    def get(self):
-        claims = get_jwt_identity()
-        if claims['role'] != 'seller' and claims['role'] != 'buyer':
-            return {"error": "Only sellers and buyers can view categories"}, 403
-        
-        categories = [category.to_dict() for category in Category.query.all()]
-        return make_response(categories, 200)
-
-    @jwt_required()
-    def post(self):
-        claims = get_jwt_identity()
-        if claims['role'] != 'seller':
-            return {"error": "Only sellers can add categories"}, 403
-        
-        data = request.get_json()
-        if not data:
-            return {"error": "Missing data in request"}, 400
-        
-        category = Category(
-            category_name=data['category_name']
-            )
-        
-        db.session.add(category)
-        db.session.commit()
-        return make_response(category.to_dict(), 201)
-
-api.add_resource(Categories, '/categories')
-
-# Categories By ID (get patch delete)
-class CategoriesByID(Resource):
-    @jwt_required()
-    def get(self, id):
-        category = Category.query.get(id)
-        if category:
-            return make_response(category.to_dict(), 200)
-        else:
-            return {"error": "Category not found"}, 404
-
-    @jwt_required()
-    def patch(self, id):
-        claims = get_jwt_identity()
-        if claims['role'] != 'seller':
-            return {"error": "Only sellers can edit categories"}, 403
-        
-        category = Category.query.get(id)
-        if not category:
-            return {"error": "Category not found"}, 404
-
-        data = request.get_json()
-        category_name = data.get('category_name')
-        if not category_name:
-            return {"error": "Missing category name"}, 400
-
-        category.category_name = category_name
-        db.session.commit()
-        return make_response(category.to_dict(), 200)
-
-    @jwt_required()
-    def delete(self, id):
-        claims = get_jwt_identity()
-        if claims['role'] != 'seller':
-            return {"error": "Only sellers can delete categories"}, 403
-        
-        category = Category.query.get(id)
-        if not category:
-            return {"error": "Category not found"}, 404
-
-        db.session.delete(category)
-        db.session.commit()
-        return {"message": "Category deleted successfully"}, 200
-
-api.add_resource(CategoriesByID, '/categories/<int:id>')
 
 # Reviews (get post)
 class Reviews(Resource):

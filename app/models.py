@@ -52,7 +52,7 @@ class User(db.Model, SerializerMixin):
         assert re.search(r"[0-9]", password), "Password should contain at least one digit"
         assert re.search(r"[!@#$%^&*(),.?\":{}|<>]", password), "Password should contain at least one special character"
         return password
-      
+    
     def upload_image(self, image):
         upload_result = cloudinary.uploader.upload(image)
         self.image = upload_result['url']
@@ -216,21 +216,21 @@ class Product(db.Model, SerializerMixin):
     description = db.Column(db.String,nullable=False)
     price = db.Column(db.Float,nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
+    category_name = db.Column(db.String, nullable=False)
+
     images = db.Column(db.JSON, nullable=False, default=[])
 
     # Foreign Keys
     store_id = db.Column(db.Integer, db.ForeignKey('stores.id'))
-    category_id = db.Column(db.Integer, db.ForeignKey('categories.id')) 
 
     # Relationships
     reviews = db.relationship('Review', back_populates='product', lazy=True)
     cart = db.relationship('Cart', back_populates='product', lazy=True)
     wishlist = db.relationship('Wishlist', back_populates='products', lazy=True)
     store = db.relationship('Store', back_populates='products')
-    category = db.relationship('Category', back_populates='products')
 
     # Serialization rules
-    serialize_rules = ('-cart', '-wishlist','-store.products','-category')
+    serialize_rules = ('-cart', '-wishlist','-store.products')
 
     # Validations
     @validates('title')
@@ -246,27 +246,15 @@ class Product(db.Model, SerializerMixin):
         if word_count < 2 or word_count > 150:
             raise ValueError("Description should be between 5 to 150 words.")
         return description
-
-    def upload_images(self, images):
-        for image in images:
-            upload_result = cloudinary.uploader.upload(image)
-            self.images.append(upload_result['url'])
-
-# Category Model
-class Category(db.Model, SerializerMixin):
-    __tablename__= 'categories'
-
-    # Columns
-    id = db.Column(db.Integer, primary_key=True)
-    category_name = db.Column(db.String, nullable=False)
-    
-    # Relationships
-    products = db.relationship('Product', back_populates='category', lazy=True)
-
-    # Validations
+      
     @validates('category_name')
     def validate_category_name(self, key, category_name):
         allowed_categories = ['Electronics', 'Clothing', 'Shoes', 'Personal Care and Beauty','Food and Beverage']
         if category_name not in allowed_categories:
             raise ValueError("Category name must be one of the following: Electronics, Clothing, Shoes, Personal Care and Beauty, Food and Beverage")
         return category_name
+
+    def upload_images(self, images):
+        for image in images:
+            upload_result = cloudinary.uploader.upload(image)
+            self.images.append(upload_result['url'])
