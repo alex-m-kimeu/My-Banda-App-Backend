@@ -172,6 +172,7 @@ class Cart_Product(db.Model, SerializerMixin):
 
     serialize_only=('product',"-product.store", "-product.cart", "-product.cart_products", )
 
+
 # Review Model
 class Review(db.Model, SerializerMixin):
     __tablename__= 'reviews'
@@ -266,7 +267,7 @@ class Product(db.Model, SerializerMixin):
                                  creator=lambda wishlist_obj: Wishlist(wishlist=wishlist_obj))
     
     # Serialization rules
-    serialize_rules = ('-cart', '-wishlist','-store.products')
+    serialize_rules = ('-cart_products', '-wishlist_products','-store.products')
 
     # Validations
     @validates('title')

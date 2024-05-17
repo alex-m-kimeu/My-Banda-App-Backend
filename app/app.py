@@ -552,10 +552,10 @@ class WishlistByBuyerID(Resource):
     def get(self):
         claims = get_jwt_identity()
         buyer_id = claims['id']
-        wishlist = Wishlist.query.filter_by(buyer_id=buyer_id).all()
+        wishlist = Wishlist.query.filter_by(buyer_id=buyer_id).first()
         if not wishlist:
             return {"error": "No Wishlist association with this buyer"}, 404
-        return jsonify([ws.to_dict() for ws in wishlist])
+        return jsonify(wishlist.to_dict() ,200 )
     
     @jwt_required()
     def post(self):
