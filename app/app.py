@@ -379,13 +379,7 @@ class StoreByID(Resource):
         store = Store.query.get_or_404(id)
         db.session.delete(store)
         db.session.commit()
-        return make_response({'message': 'Store deleted successfully'})FLASK_APP=app.py
-FLASK_RUN_PORT=5500
-FLASK_DEBUG=True
-JWT_SECRET_KEY=auth_key
-CLOUDINARY_CLOUD_NAME=dl5n7grhc
-CLOUDINARY_API_KEY=323374244561513
-CLOUDINARY_API_SECRET=oNbwdvAKmP_reN65goI81XpLTw8
+        return make_response({'message': 'Store deleted successfully'})
     
 api.add_resource(StoreByID, '/store/<int:id>')
 
@@ -492,13 +486,7 @@ class Wishlists(Resource):
         
         wishlist = Wishlist(
             product_id=data['product_id']
-        )FLASK_APP=app.py
-FLASK_RUN_PORT=5500
-FLASK_DEBUG=True
-JWT_SECRET_KEY=auth_key
-CLOUDINARY_CLOUD_NAME=dl5n7grhc
-CLOUDINARY_API_KEY=323374244561513
-CLOUDINARY_API_SECRET=oNbwdvAKmP_reN65goI81XpLTw8
+        )
         
         db.session.add(wishlist)
         db.session.commit()
@@ -594,7 +582,6 @@ class WishlistByBuyerID(Resource):
             db.session.commit()
             return make_response(new_cart.to_dict(), 201)
 
-
 api.add_resource(WishlistByBuyerID, '/wishlist/buyer')
 
 class ProductWishlistByBuyerID(Resource):
@@ -616,7 +603,7 @@ class ProductWishlistByBuyerID(Resource):
             db.session.delete(MyWishlist)
             db.session.commit()
             return make_response({'message': 'Wishlist product deleted successfully'})
-    pass
+
 api.add_resource(ProductWishlistByBuyerID, '/wishlist/product/<int:id>')
 
 # Complaints (get post)
@@ -821,7 +808,6 @@ class CartByBuyerID(Resource):
             db.session.commit()
             return make_response(new_cart.to_dict(), 201)
 
-
 api.add_resource(CartByBuyerID, '/cart/buyer')
 
 class ProductCartByBuyerID(Resource):
@@ -846,7 +832,7 @@ class ProductCartByBuyerID(Resource):
     pass
 api.add_resource(ProductCartByBuyerID, '/cart/product/<int:id>')
 
-
+# Run the app
 if __name__ == '__main__':
     with app.app_context():
         create_admin()
