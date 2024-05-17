@@ -250,7 +250,7 @@ class Product(db.Model, SerializerMixin):
     quantity = db.Column(db.Integer, nullable=False)
     category_name = db.Column(db.String, nullable=False)
 
-    images = db.Column(db.JSON, nullable=False, default=[])
+    images = db.Column(db.JSON, nullable=False, default=list)
 
     # Foreign Keys
     store_id = db.Column(db.Integer, db.ForeignKey('stores.id'))
@@ -291,6 +291,8 @@ class Product(db.Model, SerializerMixin):
         return category_name
 
     def upload_images(self, images):
+        if self.images is None:
+            self.images = []
         for image in images:
             upload_result = cloudinary.uploader.upload(image)
             self.images.append(upload_result['url'])

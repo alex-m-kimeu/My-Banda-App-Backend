@@ -209,19 +209,13 @@ class Products(Resource):
         claims = get_jwt_identity()
         if claims['role'] != 'seller':
             return {"error": "Only sellers can post new products"}, 403
-        
-        data = request.get_json()
-        if not data:
-            return {"error": "Missing data in request"}, 400
 
-        title = data.get('title')
-        description = data.get('description')
-        store_id = data.get('store_id')
-        price = data.get('price')
-        quantity = data.get('quantity')
-        category_name = data.get('category_name')
-
-        images = data.get('images')
+        title = request.form.get('title')
+        description = request.form.get('description')
+        store_id = request.form.get('store_id')
+        price = request.form.get('price')
+        quantity = request.form.get('quantity')
+        category_name = request.form.get('category_name')
 
         product = Product(
             title=title,
@@ -232,6 +226,7 @@ class Products(Resource):
             category_name=category_name
         )
 
+        images = request.files.getlist('images')
         product.upload_images(images)
 
         db.session.add(product)
@@ -259,21 +254,26 @@ class ProductsByID(Resource):
         claims = get_jwt_identity()
         if claims['role'] != 'seller':
             return {"error": "Only sellers can edit products"}, 403
-        
+
         product = Product.query.get(id)
         if not product:
             return {"error": "Product not found"}, 404
 
-        data = request.get_json()
+        title = request.form.get('title', product.title)
+        description = request.form.get('description', product.description)
+        store_id = request.form.get('store_id', product.store_id)
+        price = request.form.get('price', product.price)
+        quantity = request.form.get('quantity', product.quantity)
+        category_name = request.form.get('category_name', product.category_name)
 
-        product.title = data.get('title', product.title)
-        product.description = data.get('description', product.description)
-        product.store_id = data.get('store_id', product.store_id)
-        product.price = data.get('price', product.price)
-        product.quantity = data.get('quantity', product.quantity)
-        product.category_name = data.get('category_name', product.category_name)
+        product.title = title
+        product.description = description
+        product.store_id = store_id
+        product.price = price
+        product.quantity = quantity
+        product.category_name = category_name
 
-        images = data.get('images')
+        images = request.files.getlist('images')
         if images:
             product.images = []
             product.upload_images(images)
