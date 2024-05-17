@@ -4,6 +4,7 @@ from sqlalchemy.orm import validates, relationship
 from sqlalchemy.ext.associationproxy import association_proxy
 import re
 from datetime import datetime, timezone
+import cloudinary.uploader
 
 db = SQLAlchemy()
 
@@ -52,6 +53,10 @@ class User(db.Model, SerializerMixin):
         assert re.search(r"[!@#$%^&*(),.?\":{}|<>]", password), "Password should contain at least one special character"
         return password
     
+    def upload_image(self, image):
+        upload_result = cloudinary.uploader.upload(image)
+        self.image = upload_result['url']
+
 # Store Model
 class Store(db.Model, SerializerMixin):
     __tablename__= 'stores'
@@ -88,6 +93,10 @@ class Store(db.Model, SerializerMixin):
         if word_count < 1 or word_count > 10:
             raise ValueError("Location should be between 1 to 10 words.")
         return location
+    
+    def upload_image(self, image):
+        upload_result = cloudinary.uploader.upload(image)
+        self.image = upload_result['url']
 
 # Complaint Model
 class Complaint(db.Model, SerializerMixin):
@@ -162,9 +171,6 @@ class Cart_Product(db.Model, SerializerMixin):
     cart = db.relationship('Cart', back_populates='cart_products') 
 
     serialize_only=('product',"-product.store", "-product.cart", "-product.cart_products", )
-
-    
-
 
 # Review Model
 class Review(db.Model, SerializerMixin):
@@ -242,16 +248,16 @@ class Product(db.Model, SerializerMixin):
     description = db.Column(db.String,nullable=False)
     price = db.Column(db.Float,nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
-    images = db.Column(db.String, nullable=False)
-    
+    category_name = db.Column(db.String, nullable=False)
+
+    images = db.Column(db.JSON, nullable=False, default=[])
+
     # Foreign Keys
     store_id = db.Column(db.Integer, db.ForeignKey('stores.id'))
-    category_id = db.Column(db.Integer, db.ForeignKey('categories.id')) 
 
     # Relationships
     reviews = db.relationship('Review', back_populates='product', lazy=True)
     store = db.relationship('Store', back_populates='products')
-    category = db.relationship('Category', back_populates='products')
     cart_products = db.relationship('Cart_Product', back_populates='product',cascade='all, delete-orphan') 
     carts = association_proxy('cart_products', 'cart',
                                  creator=lambda cart_obj: Cart(cart=cart_obj))
@@ -260,7 +266,7 @@ class Product(db.Model, SerializerMixin):
                                  creator=lambda wishlist_obj: Wishlist(wishlist=wishlist_obj))
     
     # Serialization rules
-    serialize_rules = ('-cart_products', '-wishlist_products','-store.products','-category')
+    serialize_rules = ('-cart', '-wishlist','-store.products')
 
     # Validations
     @validates('title')
@@ -276,22 +282,15 @@ class Product(db.Model, SerializerMixin):
         if word_count < 2 or word_count > 150:
             raise ValueError("Description should be between 5 to 150 words.")
         return description
-
-# Category Model
-class Category(db.Model, SerializerMixin):
-    __tablename__= 'categories'
-
-    # Columns
-    id = db.Column(db.Integer, primary_key=True)
-    category_name = db.Column(db.String, nullable=False)
-    
-    # Relationships
-    products = db.relationship('Product', back_populates='category', lazy=True)
-
-    # Validations
+      
     @validates('category_name')
     def validate_category_name(self, key, category_name):
         allowed_categories = ['Electronics', 'Clothing', 'Shoes', 'Personal Care and Beauty','Food and Beverage']
         if category_name not in allowed_categories:
             raise ValueError("Category name must be one of the following: Electronics, Clothing, Shoes, Personal Care and Beauty, Food and Beverage")
         return category_name
+
+    def upload_images(self, images):
+        for image in images:
+            upload_result = cloudinary.uploader.upload(image)
+            self.images.append(upload_result['url'])

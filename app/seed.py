@@ -1,6 +1,6 @@
 from flask_bcrypt import Bcrypt
 from app import app
-from models import db, User, Store,Category, Product, Cart_Product, Cart, Wishlist, Wishlist_Product
+from models import db, User, Store, Product, Cart_Product, Cart, Wishlist, Wishlist_Product
 from sqlalchemy import text
 
 bcrypt = Bcrypt(app)
@@ -16,7 +16,6 @@ if __name__ == '__main__':
         print("Clearing db...")
         User.query.delete()
         Store.query.delete()
-        Category.query.delete()
         Product.query.delete()
         Cart.query.delete()
         Cart_Product.query.delete()
@@ -33,11 +32,7 @@ if __name__ == '__main__':
         store= [
             Store(store_name = "jade collection", description ="fancy clothes everwhaer and anywhere", image="https://images.pexels.com/photos/8864285/pexels-photo-8864285.jpeg?auto=compress&cs=tinysrgb&w=600", location="Nairobi west", seller_id=1)
         ]
-
-        category= [
-            Category( category_name= 'Clothing')
-        ]
-         
+        
         products =[
             Product(title="sports shoes", description="lorem impsum nnnn nnn nnn nnn", price= 300.00, quantity=44, images= 'https://images.pexels.com/photos/8864285/pexels-photo-8864285.jpeg?auto=compress&cs=tinysrgb&w=600', store_id=1, category_id=1),
             Product(title="tutle necks", description="hdck cdwqcg cwacg ckasdycg bcaujcgy", price= 876.00, quantity=55, images= 'https://images.pexels.com/photos/8864285/pexels-photo-8864285.jpeg?auto=compress&cs=tinysrgb&w=600', store_id=1, category_id=1)
@@ -71,7 +66,6 @@ if __name__ == '__main__':
 
         db.session.add_all(users)
         db.session.add_all(store)
-        db.session.add_all(category)
         db.session.add_all(products)
         db.session.add_all(carts)
         db.session.add_all(cart_products)

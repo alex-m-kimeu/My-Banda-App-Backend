@@ -7,8 +7,11 @@ from flask_cors import CORS
 from datetime import timedelta
 from dotenv import load_dotenv
 import os
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
-from models import db, User, Store, Complaint, Cart, Review, Wishlist, Product, Cart_Product,Category, Wishlist_Product
+from models import db, User, Store, Complaint, Cart, Review, Wishlist, Product, Cart_Product, Wishlist_Product
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -18,6 +21,12 @@ load_dotenv()
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=1)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
+
+cloudinary.config(
+    cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'),
+    api_key = os.getenv('CLOUDINARY_API_KEY'),
+    api_secret = os.getenv('CLOUDINARY_API_SECRET')
+)
 
 migrate = Migrate(app, db)
 db.init_app(app)
@@ -36,9 +45,7 @@ def create_admin():
             username="My Banda", 
             email=admin_email,
             role="admin",
-            password=hashed_password,
-            contact="1234567890",
-            image="https://images.pexels.com/photos/12814838/pexels-photo-12814838.png?auto=compress&cs=tinysrgb&w=600"
+            password=hashed_password
         )
         db.session.add(admin)
         db.session.commit()
@@ -149,19 +156,24 @@ class UserByID(Resource):
         user = User.query.filter_by(id=id).first()
         if user is None:
             return {"error": "User not found"}, 404
-        
-        data = request.get_json()
-        if all(key in data for key in ['username', 'email', 'password', 'contact']):
-            try:   
-                user.username = data['username']
-                user.email = data['email']
-                user.contact = data['contact']
-                user.password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
-                db.session.commit()
-                return make_response(user.to_dict(), 200)
-            except AssertionError:
-                return {"errors": ["validation errors"]}, 400
-        else:
+
+        if 'username' in request.form:
+            user.username = request.form['username']
+        if 'email' in request.form:
+            user.email = request.form['email']
+        if 'password' in request.form:
+            user.password = bcrypt.generate_password_hash(request.form['password']).decode('utf-8')
+        if 'contact' in request.form:
+            user.contact = request.form['contact']
+
+        if 'image' in request.files:
+            image = request.files['image']
+            user.upload_image(image)
+
+        try:
+            db.session.commit()
+            return make_response(user.to_dict(), 200)
+        except AssertionError:
             return {"errors": ["validation errors"]}, 400
 
     @jwt_required()
@@ -207,8 +219,9 @@ class Products(Resource):
         store_id = data.get('store_id')
         price = data.get('price')
         quantity = data.get('quantity')
-        category_id = data.get('category_id')
-        images=data.get('images')
+        category_name = data.get('category_name')
+
+        images = data.get('images')
 
         product = Product(
             title=title,
@@ -216,9 +229,10 @@ class Products(Resource):
             store_id=store_id,
             price=price,
             quantity=quantity,
-            category_id=category_id,
-            images=images
+            category_name=category_name
         )
+
+        product.upload_images(images)
 
         db.session.add(product)
         db.session.commit()
@@ -252,13 +266,17 @@ class ProductsByID(Resource):
 
         data = request.get_json()
 
-        product.title = data.get('title')
-        product.description = data.get('description')
-        product.store_id = data.get('store_id')
-        product.price = data.get('price')
-        product.quantity = data.get('quantity')
-        product.category_id = data.get('category_id')
-        product.images = data.get('images')
+        product.title = data.get('title', product.title)
+        product.description = data.get('description', product.description)
+        product.store_id = data.get('store_id', product.store_id)
+        product.price = data.get('price', product.price)
+        product.quantity = data.get('quantity', product.quantity)
+        product.category_name = data.get('category_name', product.category_name)
+
+        images = data.get('images')
+        if images:
+            product.images = []
+            product.upload_images(images)
 
         db.session.commit()
         return make_response(product.to_dict(), 200)
@@ -291,19 +309,20 @@ class Stores(Resource):
         claims = get_jwt_identity()
         if claims['role'] != 'seller':
             return {"error": "Only sellers can create stores"}, 403
-        
-        data = request.get_json()
-        if not data:
-            return {"error": "Missing data in request"}, 400
-    
+
+        if 'image' not in request.files:
+            return {"error": "No image file provided"}, 400
+
         store = Store(
-            store_name=data['store_name'], 
-            description=data['description'],
-            image=data['image'],
-            location=data['location'],
-            seller_id=data['seller_id']
-            )
-        
+            store_name=request.form['store_name'], 
+            description=request.form['description'],
+            location=request.form['location'],
+            seller_id=request.form['seller_id']
+        )
+
+        image = request.files['image']
+        store.upload_image(image)
+
         db.session.add(store)
         db.session.commit()
         return make_response(store.to_dict(), 201)
@@ -319,29 +338,32 @@ class StoreByID(Resource):
             return {"error": "Store not found"}, 404
         response_dict = store.to_dict()
         return make_response(response_dict, 200)
-    
+
     @jwt_required()
     def patch(self,id):
         claims = get_jwt_identity()
         if claims['role'] != 'seller':
             return {"error": "Only sellers can edit a store"}, 403
-        
+    
         store = Store.query.filter_by(id=id).first()
         if store is None:
             return {"error": "Store not found"}, 404
-        
-        data = request.get_json()
-        if all(key in data for key in ['store_name', 'description', 'image', 'location']):
-            try:   
-                store.store_name = data['store_name']
-                store.description= data['description']
-                store.image = data['image']
-                store.location = data['location']
-                db.session.commit()
-                return make_response(store.to_dict(), 200)
-            except AssertionError:
-                return {"errors": ["validation errors"]}, 400
-        else:
+    
+        if 'store_name' in request.form:
+            store.store_name = request.form['store_name']
+        if 'description' in request.form:
+            store.description= request.form['description']
+        if 'location' in request.form:
+            store.location = request.form['location']
+
+        if 'image' in request.files:
+            image = request.files['image']
+            store.upload_image(image)
+    
+        try:
+            db.session.commit()
+            return make_response(store.to_dict(), 200)
+        except AssertionError:
             return {"errors": ["validation errors"]}, 400
 
     @jwt_required()
@@ -360,82 +382,6 @@ class StoreByID(Resource):
         return make_response({'message': 'Store deleted successfully'})
     
 api.add_resource(StoreByID, '/store/<int:id>')
-
-# Categories (get post)
-class Categories(Resource):
-    @jwt_required()
-    def get(self):
-        claims = get_jwt_identity()
-        if claims['role'] != 'seller' and claims['role'] != 'buyer':
-            return {"error": "Only sellers and buyers can view categories"}, 403
-        
-        categories = [category.to_dict() for category in Category.query.all()]
-        return make_response(categories, 200)
-
-    @jwt_required()
-    def post(self):
-        claims = get_jwt_identity()
-        if claims['role'] != 'seller':
-            return {"error": "Only sellers can add categories"}, 403
-        
-        data = request.get_json()
-        if not data:
-            return {"error": "Missing data in request"}, 400
-        
-        category = Category(
-            category_name=data['category_name']
-            )
-        
-        db.session.add(category)
-        db.session.commit()
-        return make_response(category.to_dict(), 201)
-
-api.add_resource(Categories, '/categories')
-
-# Categories By ID (get patch delete)
-class CategoriesByID(Resource):
-    @jwt_required()
-    def get(self, id):
-        category = Category.query.get(id)
-        if category:
-            return make_response(category.to_dict(), 200)
-        else:
-            return {"error": "Category not found"}, 404
-
-    @jwt_required()
-    def patch(self, id):
-        claims = get_jwt_identity()
-        if claims['role'] != 'seller':
-            return {"error": "Only sellers can edit categories"}, 403
-        
-        category = Category.query.get(id)
-        if not category:
-            return {"error": "Category not found"}, 404
-
-        data = request.get_json()
-        category_name = data.get('category_name')
-        if not category_name:
-            return {"error": "Missing category name"}, 400
-
-        category.category_name = category_name
-        db.session.commit()
-        return make_response(category.to_dict(), 200)
-
-    @jwt_required()
-    def delete(self, id):
-        claims = get_jwt_identity()
-        if claims['role'] != 'seller':
-            return {"error": "Only sellers can delete categories"}, 403
-        
-        category = Category.query.get(id)
-        if not category:
-            return {"error": "Category not found"}, 404
-
-        db.session.delete(category)
-        db.session.commit()
-        return {"message": "Category deleted successfully"}, 200
-
-api.add_resource(CategoriesByID, '/categories/<int:id>')
 
 # Reviews (get post)
 class Reviews(Resource):
