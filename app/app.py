@@ -379,7 +379,13 @@ class StoreByID(Resource):
         store = Store.query.get_or_404(id)
         db.session.delete(store)
         db.session.commit()
-        return make_response({'message': 'Store deleted successfully'})
+        return make_response({'message': 'Store deleted successfully'})FLASK_APP=app.py
+FLASK_RUN_PORT=5500
+FLASK_DEBUG=True
+JWT_SECRET_KEY=auth_key
+CLOUDINARY_CLOUD_NAME=dl5n7grhc
+CLOUDINARY_API_KEY=323374244561513
+CLOUDINARY_API_SECRET=oNbwdvAKmP_reN65goI81XpLTw8
     
 api.add_resource(StoreByID, '/store/<int:id>')
 
@@ -486,7 +492,13 @@ class Wishlists(Resource):
         
         wishlist = Wishlist(
             product_id=data['product_id']
-        )
+        )FLASK_APP=app.py
+FLASK_RUN_PORT=5500
+FLASK_DEBUG=True
+JWT_SECRET_KEY=auth_key
+CLOUDINARY_CLOUD_NAME=dl5n7grhc
+CLOUDINARY_API_KEY=323374244561513
+CLOUDINARY_API_SECRET=oNbwdvAKmP_reN65goI81XpLTw8
         
         db.session.add(wishlist)
         db.session.commit()
@@ -552,10 +564,10 @@ class WishlistByBuyerID(Resource):
     def get(self):
         claims = get_jwt_identity()
         buyer_id = claims['id']
-        wishlist = Wishlist.query.filter_by(buyer_id=buyer_id).all()
+        wishlist = Wishlist.query.filter_by(buyer_id=buyer_id).first()
         if not wishlist:
             return {"error": "No Wishlist association with this buyer"}, 404
-        return jsonify([ws.to_dict() for ws in wishlist])
+        return jsonify(wishlist.to_dict() ,200 )
     
     @jwt_required()
     def post(self):

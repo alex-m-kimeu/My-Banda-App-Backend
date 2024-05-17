@@ -34,8 +34,8 @@ if __name__ == '__main__':
         ]
         
         products =[
-            Product(title="sports shoes", description="lorem impsum nnnn nnn nnn nnn", price= 300.00, quantity=44, images= 'https://images.pexels.com/photos/8864285/pexels-photo-8864285.jpeg?auto=compress&cs=tinysrgb&w=600', store_id=1, category_id=1),
-            Product(title="tutle necks", description="hdck cdwqcg cwacg ckasdycg bcaujcgy", price= 876.00, quantity=55, images= 'https://images.pexels.com/photos/8864285/pexels-photo-8864285.jpeg?auto=compress&cs=tinysrgb&w=600', store_id=1, category_id=1)
+            Product(title="sports shoes", description="lorem impsum nnnn nnn nnn nnn", price= 300.00, quantity=44, images= 'https://images.pexels.com/photos/8864285/pexels-photo-8864285.jpeg?auto=compress&cs=tinysrgb&w=600', store_id=1, category_name ="Clothing"),
+            Product(title="tutle necks", description="hdck cdwqcg cwacg ckasdycg bcaujcgy", price= 876.00, quantity=55, images= 'https://images.pexels.com/photos/8864285/pexels-photo-8864285.jpeg?auto=compress&cs=tinysrgb&w=600', store_id=1, category_name ="Clothing")
         ] 
 
         carts=[

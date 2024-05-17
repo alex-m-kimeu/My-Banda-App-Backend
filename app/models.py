@@ -266,7 +266,7 @@ class Product(db.Model, SerializerMixin):
                                  creator=lambda wishlist_obj: Wishlist(wishlist=wishlist_obj))
     
     # Serialization rules
-    serialize_rules = ('-cart', '-wishlist','-store.products')
+    serialize_rules = ('-cart_products', '-wishlist_products','-store.products')
 
     # Validations
     @validates('title')
