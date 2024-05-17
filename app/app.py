@@ -220,6 +220,7 @@ class Products(Resource):
         price = data.get('price')
         quantity = data.get('quantity')
         category_name = data.get('category_name')
+
         images = data.get('images')
 
         product = Product(

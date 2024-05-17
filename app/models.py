@@ -56,7 +56,7 @@ class User(db.Model, SerializerMixin):
     def upload_image(self, image):
         upload_result = cloudinary.uploader.upload(image)
         self.image = upload_result['url']
-    
+
 # Store Model
 class Store(db.Model, SerializerMixin):
     __tablename__= 'stores'
@@ -217,6 +217,7 @@ class Product(db.Model, SerializerMixin):
     price = db.Column(db.Float,nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     category_name = db.Column(db.String, nullable=False)
+
     images = db.Column(db.JSON, nullable=False, default=[])
 
     # Foreign Keys
@@ -245,7 +246,7 @@ class Product(db.Model, SerializerMixin):
         if word_count < 2 or word_count > 150:
             raise ValueError("Description should be between 5 to 150 words.")
         return description
-    
+      
     @validates('category_name')
     def validate_category_name(self, key, category_name):
         allowed_categories = ['Electronics', 'Clothing', 'Shoes', 'Personal Care and Beauty','Food and Beverage']
