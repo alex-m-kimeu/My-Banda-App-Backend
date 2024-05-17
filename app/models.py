@@ -172,7 +172,6 @@ class Cart_Product(db.Model, SerializerMixin):
 
     serialize_only=('product',"-product.store", "-product.cart", "-product.cart_products", )
 
-
 # Review Model
 class Review(db.Model, SerializerMixin):
     __tablename__= 'reviews'
