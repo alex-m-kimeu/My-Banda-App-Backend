@@ -329,7 +329,7 @@ class Stores(Resource):
 
 api.add_resource(Stores, '/stores')
 
-# Store By ID (get patch delete)
+# Store By ID 
 class StoreByID(Resource):
     @jwt_required()
     def get(self,id):
