@@ -1,6 +1,6 @@
 from flask_bcrypt import Bcrypt
 from app import app
-from models import db, User, Store, Product, Cart_Product, Cart, Wishlist, Wishlist_Product
+from models import db, User, Store, Product,  Cart, Wishlist
 from sqlalchemy import text
 
 bcrypt = Bcrypt(app)
@@ -18,9 +18,7 @@ if __name__ == '__main__':
         Store.query.delete()
         Product.query.delete()
         Cart.query.delete()
-        Cart_Product.query.delete()
         Wishlist.query.delete()
-        Wishlist_Product.query.delete()
            
         print("Seeding users...")
         users = [
@@ -35,42 +33,30 @@ if __name__ == '__main__':
         
         products =[
             Product(title="sports shoes", description="lorem impsum nnnn nnn nnn nnn", price= 300.00, quantity=44, images= 'https://images.pexels.com/photos/8864285/pexels-photo-8864285.jpeg?auto=compress&cs=tinysrgb&w=600', store_id=1, category_name ="Clothing"),
-            Product(title="tutle necks", description="hdck cdwqcg cwacg ckasdycg bcaujcgy", price= 876.00, quantity=55, images= 'https://images.pexels.com/photos/8864285/pexels-photo-8864285.jpeg?auto=compress&cs=tinysrgb&w=600', store_id=1, category_name ="Clothing")
+            Product(title="tutle necks", description="hdck cdwqcg cwacg ckasdycg bcaujcgy", price= 400.00, quantity=55, images= 'https://images.pexels.com/photos/8864285/pexels-photo-8864285.jpeg?auto=compress&cs=tinysrgb&w=600', store_id=1, category_name ="Clothing")
         ] 
 
         carts=[
-            Cart(buyer_id=2),
-            Cart(buyer_id=3)
-        ]
-
-
-        cart_products=[
-             Cart_Product(product_id=1, cart_id=1),
-             Cart_Product(product_id=2, cart_id=1),
-             Cart_Product(product_id=1, cart_id=2),
-             Cart_Product(product_id=1, cart_id=1)
+            Cart(quantity=1,buyer_id=2, product_id=1, subtotal=300.00,  items_cost=0 , total_cost=0),
+            Cart(quantity=1,buyer_id=2, product_id=2 ,subtotal = 400.00,  items_cost=0, total_cost=0),
+            Cart(quantity=1,buyer_id=3, product_id=2, subtotal = 876.00,  items_cost=876.00, total_cost=1076)
         ]
 
         wishlists =[
-            Wishlist(buyer_id=2),
-            Wishlist(buyer_id=3)
+            Wishlist(buyer_id=2,product_id=1 ),
+            Wishlist(buyer_id=2,  product_id=2),
+            Wishlist(buyer_id=3,  product_id=1),
+            Wishlist(buyer_id=3,  product_id=2),
         ]
 
-        wishlist_products=[
-             Wishlist_Product(product_id=1, wishlist_id=1),
-             Wishlist_Product(product_id=2, wishlist_id=1),
-             Wishlist_Product(product_id=1, wishlist_id=2)
-        ]
-
+      
         
 
         db.session.add_all(users)
         db.session.add_all(store)
         db.session.add_all(products)
         db.session.add_all(carts)
-        db.session.add_all(cart_products)
         db.session.add_all(wishlists)
-        db.session.add_all(wishlist_products)
 
         db.session.commit()    
         print("Done seeding!")

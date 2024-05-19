@@ -1,4 +1,4 @@
-from flask import Flask, request, make_response, jsonify
+from flask import Flask, request, make_response, jsonify, flash
 from flask_migrate import Migrate
 from flask_restful import Api, Resource
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity, create_access_token, create_refresh_token
@@ -11,7 +11,7 @@ import cloudinary
 import cloudinary.uploader
 import cloudinary.api
 
-from models import db, User, Store, Complaint, Cart, Review, Wishlist, Product, Cart_Product, Wishlist_Product
+from models import db, User, Store, Complaint, Cart, Review, Wishlist, Product
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -280,7 +280,67 @@ class ProductsByID(Resource):
 
         db.session.commit()
         return make_response(product.to_dict(), 200)
+    
+    @jwt_required()
+    def post(self, id):
+        claims = get_jwt_identity()
+        if claims['role'] != 'buyer':
+            return {"error": "Only buyers can post to the cart"}, 403
+        
+        current_buyer_id = claims['id']
+        product_to_add = Product.query.get(id)
+        product_exists = Cart.query.filter_by(product_id=id, buyer_id=current_buyer_id).first()
+        print(product_exists)
+        cart = Cart.query.filter_by(buyer_id=current_buyer_id).all()
+        if not cart:
+        
+                new_cart_item = Cart(
+                
+                quantity= 1,
+                product_id=product_to_add.id,
+                buyer_id = current_buyer_id,
+                items_cost= product_to_add.price,
+                total_cost= product_to_add.price +200,
+                subtotal = product_to_add.price
+    
+    
+            ) 
+                db.session.add(new_cart_item)
+                db.session.commit()
+                print('Item added added to the cart')
+    
+              
+    
+                return make_response(new_cart_item.to_dict(),200)
+        else :
+            if product_exists:
+                try:
+                    product_exists.quantity = product_exists.quantity +1
+                    db.session.commit()
 
+                    print("product exists" )
+                    return make_response(product_exists.to_dict(), 200)
+                except:
+                    print('quantity not updated')
+
+            else:
+        
+                new_cart_item = Cart(
+                
+                quantity= 1,
+                product_id=product_to_add.id,
+                buyer_id = current_buyer_id,
+                items_cost= product_to_add.price,
+                total_cost= product_to_add.price +200,
+                subtotal = product_to_add.price
+    
+    
+            ) 
+                db.session.add(new_cart_item)
+                db.session.commit()
+                print('Item added added to the cart')
+    
+        
     @jwt_required()
     def delete(self, id):
         claims = get_jwt_identity()
@@ -296,6 +356,84 @@ class ProductsByID(Resource):
         return {"message": "Product deleted successfully"}, 200
 
 api.add_resource(ProductsByID, '/products/<int:id>')
+
+    
+
+class DeleteDecreaseFromCart(Resource):
+    @jwt_required()
+    def delete(self,id):
+        claims = get_jwt_identity()
+        if claims['role'] != 'buyer':
+            return {"error": "Only buyers can delete to the cart"}, 403
+        
+        current_buyer_id = claims['id']
+        product_exists = Cart.query.filter_by(product_id=id, buyer_id=current_buyer_id).first()
+        print(product_exists)
+        if product_exists:
+            db.session.delete(product_exists)
+            db.session.commit()
+            return {"message": "Product deleted successfully"}, 200
+
+    @jwt_required()
+    def post(self, id):
+        claims = get_jwt_identity()
+        if claims['role'] != 'buyer':
+            return {"error": "Only buyers can post to the cart"}, 403
+        buyer_id = claims['id']
+        
+        
+        cart = Cart.query.filter_by(buyer_id=buyer_id).all()
+        if not cart:
+            return {"error": "No Cart association with this buyer"}, 404
+        
+        total_subtotal = sum(ct.subtotal for ct in cart)
+        for order in cart:
+            order.items_cost= total_subtotal
+            order.total_cost = total_subtotal +200
+        
+        current_buyer_id = claims['id']
+        item_to_be_decreased= Cart.query.filter_by(product_id=id, buyer_id=current_buyer_id).first()
+
+        item_to_be_decreased.quantity =max(item_to_be_decreased.quantity - 1, 1)
+        item_to_be_decreased.subtotal  = item_to_be_decreased.products.price *item_to_be_decreased.quantity
+
+
+        db.session.commit()
+        return make_response(item_to_be_decreased.to_dict(), 200)
+        
+        
+
+api.add_resource(DeleteDecreaseFromCart, '/productdec/<int:id>')
+
+class IncreseInCart(Resource):
+    @jwt_required()
+    def post(self, id):
+        claims = get_jwt_identity()
+        if claims['role'] != 'buyer':
+            return {"error": "Only buyers can post to the cart"}, 403
+      
+        buyer_id = claims['id']
+        
+        current_buyer_id = claims['id']
+        item_to_increased= Cart.query.filter_by(product_id=id, buyer_id=current_buyer_id).first()
+        
+        cart = Cart.query.filter_by(buyer_id=buyer_id).all()
+        if not cart:
+            return {"error": "No Cart association with this buyer"}, 404
+        
+        total_subtotal = sum(ct.subtotal for ct in cart)
+        for order in cart:
+            order.items_cost= total_subtotal
+            order.total_cost = total_subtotal +200
+
+        item_to_increased.quantity =item_to_increased.quantity + 1
+        item_to_increased.subtotal  = item_to_increased.products.price *item_to_increased.quantity
+
+        db.session.commit()
+        return make_response(item_to_increased.to_dict(), 200)
+
+api.add_resource(IncreseInCart, '/productinc/<int:id>')
+
 
 # Store (get post)
 class Stores(Resource):
@@ -465,14 +603,28 @@ api.add_resource(ReviewsByID, '/review/<int:id>')
 
 # Wishlist (get post)
 class Wishlists(Resource):
+    # @jwt_required()
+    # def get(self):
+    #     claims = get_jwt_identity()
+    #     if claims['role'] != 'buyer':
+    #         return {"error": "Only buyers can view wishlists"}, 403
+        
+    #     wishlists = [wishlist.to_dict() for wishlist in Wishlist.query.all()]
+    #     return make_response(wishlists,200)
+
     @jwt_required()
     def get(self):
         claims = get_jwt_identity()
         if claims['role'] != 'buyer':
-            return {"error": "Only buyers can view wishlists"}, 403
+            return {"error": "Only buyers can view the cart"}, 403
+        buyer_id = claims['id']
+        wishlists= Wishlist.query.filter_by(buyer_id=buyer_id).all()
+        if not wishlists:
+            return {"error": "No Wishlist association with this buyer"}, 404
+             
+
+        return jsonify([wishlist.to_dict(rules=()) for wishlist in wishlists])
         
-        wishlists = [wishlist.to_dict() for wishlist in Wishlist.query.all()]
-        return make_response(wishlists,200)
     
     @jwt_required()
     def  post(self):
@@ -529,82 +681,61 @@ class WishlistByID(Resource):
         else:
             return {"errors": ["validation errors"]}, 400
         
-    @jwt_required()
-    def delete(self, id):
-        claims = get_jwt_identity()
-        if claims['role'] != 'buyer':
-            return {"error": "Only buyers can delete wishlists"}, 403
+    # @jwt_required()
+    # def delete(self, id):
+    #     claims = get_jwt_identity()
+    #     if claims['role'] != 'buyer':
+    #        return {"error": "Only buyers can delete wishlists"}, 403
         
-        wishlist = Wishlist.query.filter_by(id=id).first()
-        if wishlist is None:
-            return {"error": "Wishlist not found"}, 404
+    #     wishlist = Wishlist.query.filter_by(id=id).first()
+    #     if wishlist is None:
+    #         return {"error": "Wishlist not found"}, 404
         
-        wishlist = Wishlist.query.get_or_404(id)
-        db.session.delete(wishlist)
-        db.session.commit()
-        return make_response({'message': 'Wishlist deleted successfully'})
+    #     wishlist = Wishlist.query.get_or_404(id)
+    #     db.session.delete(wishlist)
+    #     db.session.commit()
+    #     return make_response({'message': 'Wishlist deleted successfully'})
 
-api.add_resource(WishlistByID,'/wishlists/<int:id>')
-
-
-class WishlistByBuyerID(Resource):
     @jwt_required()
-    def get(self):
-        claims = get_jwt_identity()
-        buyer_id = claims['id']
-        wishlist = Wishlist.query.filter_by(buyer_id=buyer_id).first()
-        if not wishlist:
-            return {"error": "No Wishlist association with this buyer"}, 404
-        return jsonify(wishlist.to_dict() ,200 )
-    
-    @jwt_required()
-    def post(self):
+    def post(self, id):
         claims = get_jwt_identity()
         if claims['role'] != 'buyer':
             return {"error": "Only buyers can post to the cart"}, 403
         
-        buyer_id = claims['id']
-        wishlist = Wishlist.query.filter_by(buyer_id=buyer_id).first()
+        current_buyer_id = claims['id']
+        product_to_add = Product.query.get(id)
+        product_exists = Wishlist.query.filter_by(product_id=id, buyer_id=current_buyer_id).first()
+        if  not product_exists:
         
-        data = request.get_json() 
-        wishlist_id = data['wishlist_id']
-        if wishlist.id == wishlist_id:
+                new_wishlist_item = Wishlist(
+                product_id=product_to_add.id,
+                buyer_id = current_buyer_id,
+            ) 
+                db.session.add(new_wishlist_item)
+                db.session.commit()
+                print('Item added to the wishlist')
+                return make_response(new_wishlist_item.to_dict(),200)
+        else :
             
-            if not data:
-                return {"error": "Missing data in request"}, 400
+               return {"message": "Product aleardy existis in the wishlist"}, 200
             
-            new_cart = Wishlist_Product(
-                product_id=data['product_id'],
-                wishlist_id=data['wishlist_id'],
-            )
-            
-            db.session.add(new_cart)
-            db.session.commit()
-            return make_response(new_cart.to_dict(), 201)
 
-api.add_resource(WishlistByBuyerID, '/wishlist/buyer')
-
-class ProductWishlistByBuyerID(Resource):
     @jwt_required()
-    def delete(self, id):
+    def delete(self,id):
         claims = get_jwt_identity()
         if claims['role'] != 'buyer':
-            return {"error": "Only buyers can delete the cart"}, 403
+            return {"error": "Only buyers can delete to the cart"}, 403
         
-        buyer_id = claims['id']
-        cart = Wishlist.query.filter_by(buyer_id=buyer_id).first()
-        
-
-        if cart is None:
-            return {"error": "Cart not found"}, 404
-        
-        if cart:
-            MyWishlist = Wishlist_Product.query.get_or_404(id)
-            db.session.delete(MyWishlist)
+        current_buyer_id = claims['id']
+        product_exists = Wishlist.query.filter_by(product_id=id, buyer_id=current_buyer_id).first()
+        if product_exists:
+            db.session.delete(product_exists)
             db.session.commit()
-            return make_response({'message': 'Wishlist product deleted successfully'})
+            return {"message": "Product deleted successfully from the wishlist"}, 200
+        
 
-api.add_resource(ProductWishlistByBuyerID, '/wishlist/product/<int:id>')
+
+api.add_resource(WishlistByID,'/wishlists/<int:id>')
 
 # Complaints (get post)
 class Complaints(Resource):
@@ -698,32 +829,26 @@ class Carts(Resource):
         claims = get_jwt_identity()
         if claims['role'] != 'buyer':
             return {"error": "Only buyers can view the cart"}, 403
+        buyer_id = claims['id']
+        cart = Cart.query.filter_by(buyer_id=buyer_id).all()
+        if not cart:
+            return {"error": "No Cart association with this buyer"}, 404
         
-        carts = [cart.to_dict() for cart in Cart.query.all()]
-        return make_response(carts, 200)
+        total_subtotal = sum(ct.subtotal for ct in cart)
+        for order in cart:
+            order.items_cost= total_subtotal
+            order.total_cost = total_subtotal +200
+             
+
+        return jsonify([ct.to_dict(rules=()) for ct in cart])
     
-    @jwt_required()
-    def post(self):
-        claims = get_jwt_identity()
-        if claims['role'] != 'buyer':
-            return {"error": "Only buyers can post to the cart"}, 403
-        
-        data = request.get_json()
-        if not data:
-            return {"error": "Missing data in request"}, 400
-        
-        cart = Cart(
-            product_id=data['product_id']
-        )
-        
-        db.session.add(cart)
-        db.session.commit()
-        return make_response(cart.to_dict(), 201)
+    
 
 api.add_resource(Carts, '/carts')
 
 # Cart By ID (get patch delete)
 class CartByID(Resource):
+   
     @jwt_required()
     def get(self, id):
         claims = get_jwt_identity()
@@ -735,26 +860,7 @@ class CartByID(Resource):
             return {"error": "Cart not found"}, 404
         return make_response(cart.to_dict(), 200)
     
-    @jwt_required()
-    def patch(self, id):
-        claims = get_jwt_identity()
-        if claims['role'] != 'buyer':
-            return {"error": "Only buyers can edit the cart"}, 403
-        
-        cart = Cart.query.filter_by(id=id).first()
-        if cart is None:
-            return {"error": "Cart not found"}, 404
-        
-        data = request.get_json()
-        if 'product_id' in data:
-            try:
-                cart.product_id = data['product_id']
-                db.session.commit()
-                return make_response(cart.to_dict(), 200)
-            except AssertionError:
-                return {"errors": ["validation errors"]}, 400
-        else:
-            return {"errors": ["validation errors"]}, 400
+
     
     @jwt_required()
     def delete(self, id):
@@ -773,64 +879,6 @@ class CartByID(Resource):
 
 api.add_resource(CartByID, '/cart/<int:id>')
 
-class CartByBuyerID(Resource):
-    @jwt_required()
-    def get(self):
-        claims = get_jwt_identity()
-        buyer_id = claims['id']
-        cart = Cart.query.filter_by(buyer_id=buyer_id).first()
-        if not cart:
-            return {"error": "No Cart association with this buyer"}, 404
-        return jsonify(cart.to_dict() )
-    
-    @jwt_required()
-    def post(self):
-        claims = get_jwt_identity()
-        if claims['role'] != 'buyer':
-            return {"error": "Only buyers can post to the cart"}, 403
-        
-        buyer_id = claims['id']
-        cart = Cart.query.filter_by(buyer_id=buyer_id).first()
-        
-        data = request.get_json() 
-        cart_id = data['cart_id']
-        if cart.id == cart_id:
-            
-            if not data:
-                return {"error": "Missing data in request"}, 400
-            
-            new_cart = Cart_Product(
-                product_id=data['product_id'],
-                cart_id=data['cart_id'],
-            )
-            
-            db.session.add(new_cart)
-            db.session.commit()
-            return make_response(new_cart.to_dict(), 201)
-
-api.add_resource(CartByBuyerID, '/cart/buyer')
-
-class ProductCartByBuyerID(Resource):
-    @jwt_required()
-    def delete(self, id):
-        claims = get_jwt_identity()
-        if claims['role'] != 'buyer':
-            return {"error": "Only buyers can delete the cart"}, 403
-        
-        buyer_id = claims['id']
-        cart = Cart.query.filter_by(buyer_id=buyer_id).first()
-        
-
-        if cart is None:
-            return {"error": "Cart not found"}, 404
-        
-        if cart:
-            MyCart = Cart_Product.query.get_or_404(id)
-            db.session.delete(MyCart)
-            db.session.commit()
-            return make_response({'message': 'Cart deleted successfully'})
-    pass
-api.add_resource(ProductCartByBuyerID, '/cart/product/<int:id>')
 
 # Run the app
 if __name__ == '__main__':

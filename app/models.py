@@ -25,7 +25,7 @@ class User(db.Model, SerializerMixin):
     store = db.relationship('Store', back_populates= 'seller', uselist=False, cascade="all, delete-orphan")
     reviews = db.relationship('Review', back_populates= 'buyer', cascade="all, delete-orphan")
     complaints = db.relationship('Complaint', back_populates= 'buyer', cascade="all, delete-orphan")
-    wishlist = db.relationship('Wishlist', back_populates='users', cascade="all, delete-orphan")
+    wishlist = db.relationship('Wishlist', back_populates='buyer', cascade="all, delete-orphan")
     cart = db.relationship('Cart', back_populates='buyer', cascade="all, delete-orphan")
 
     # Serialization rules
@@ -147,30 +147,22 @@ class Cart(db.Model, SerializerMixin):
 
     # Columns
     id = db.Column(db.Integer, primary_key=True)
+    quantity = db.Column(db.Integer, nullable=False)
+    subtotal = db.Column(db.Integer, nullable=False)
+    items_cost = db.Column(db.Integer, nullable=False)
+    total_cost = db.Column(db.Integer, nullable=False)
     
     # Foreign Keys
     buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
     
     # Relationships
-    buyer = db.relationship('User', back_populates='cart') 
-    cart_products = db.relationship('Cart_Product', back_populates='cart',cascade='all, delete-orphan') 
-    products = association_proxy('cart_products', 'product',
-                                 creator=lambda product_obj: Product(product=product_obj))
-  
-    serialize_only=('products',"-products.store", "-products.cart", "-products.cart_products", )
+    buyer = db.relationship('User', back_populates='cart', lazy=True) 
+    products = db.relationship('Product', back_populates='cart', lazy=True) 
+   
+    serialize_rules=('-buyer','-products.cart')
     
 
-class Cart_Product(db.Model, SerializerMixin):
-    __tablename__='cart_products'
-
-    id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
-    cart_id = db.Column(db.Integer, db.ForeignKey('carts.id'), nullable=False)
-    
-    product = db.relationship('Product', back_populates='cart_products') 
-    cart = db.relationship('Cart', back_populates='cart_products') 
-
-    serialize_only=('product',"-product.store", "-product.cart", "-product.cart_products", )
 
 # Review Model
 class Review(db.Model, SerializerMixin):
@@ -216,26 +208,14 @@ class Wishlist(db.Model, SerializerMixin):
 
     # Foreign Keys
     buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+
  
     # Relationships 
-    users = db.relationship('User', back_populates='wishlist')
-    wishlist_products = db.relationship('Wishlist_Product', back_populates='wishlist',cascade='all, delete-orphan') 
-    products = association_proxy('wishlist_products', 'product',
-                                 creator=lambda product_obj: Product(product=product_obj))
-  
-    serialize_only=('products',"-products.store", "-products.cart", "-products.wishlist_products", )
-
-class Wishlist_Product(db.Model, SerializerMixin):
-    __tablename__='wishlist_products'
-
-    id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
-    wishlist_id = db.Column(db.Integer, db.ForeignKey('wishlists.id'), nullable=False)
+    products = db.relationship('Product', back_populates='wishlist', lazy=True) 
+    buyer = db.relationship('User', back_populates='wishlist', lazy=True)
     
-    product = db.relationship('Product', back_populates='wishlist_products') 
-    wishlist = db.relationship('Wishlist', back_populates='wishlist_products') 
-
-    serialize_only=('product',"-product.store", "-product.cart", "-product.wishlist_products", )
+    serialize_rules=('-buyer', "-products.wishlist", )
 
     
 # Product Model
@@ -257,16 +237,13 @@ class Product(db.Model, SerializerMixin):
 
     # Relationships
     reviews = db.relationship('Review', back_populates='product', lazy=True)
-    store = db.relationship('Store', back_populates='products')
-    cart_products = db.relationship('Cart_Product', back_populates='product',cascade='all, delete-orphan') 
-    carts = association_proxy('cart_products', 'cart',
-                                 creator=lambda cart_obj: Cart(cart=cart_obj))
-    wishlist_products = db.relationship('Wishlist_Product', back_populates='product',cascade='all, delete-orphan') 
-    wishlists = association_proxy('wishlist_products', 'wishlist',
-                                 creator=lambda wishlist_obj: Wishlist(wishlist=wishlist_obj))
+    store = db.relationship('Store', back_populates='products', lazy=True)
+    cart = db.relationship('Cart', back_populates='products', lazy=True) 
+    wishlist = db.relationship('Wishlist', back_populates='products', lazy=True) 
+
     
     # Serialization rules
-    serialize_rules = ('-cart_products', '-wishlist_products','-store.products')
+    serialize_rules = ('-cart', '-wishlist','-store.products', "-reviews.product")
 
     # Validations
     @validates('title')
