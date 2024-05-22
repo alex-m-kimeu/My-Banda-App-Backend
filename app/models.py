@@ -229,7 +229,6 @@ class Product(db.Model, SerializerMixin):
     price = db.Column(db.Float,nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     category_name = db.Column(db.String, nullable=False)
-
     images = db.Column(db.JSON, nullable=False, default=list)
 
     # Foreign Keys
@@ -262,9 +261,9 @@ class Product(db.Model, SerializerMixin):
       
     @validates('category_name')
     def validate_category_name(self, key, category_name):
-        allowed_categories = ['Electronics', 'Clothing', 'Shoes', 'Personal Care and Beauty','Food and Beverage']
+        allowed_categories = ['Electronics', 'Clothing', 'Shoes', 'Health & beauty','Jewelry']
         if category_name not in allowed_categories:
-            raise ValueError("Category name must be one of the following: Electronics, Clothing, Shoes, Personal Care and Beauty, Food and Beverage")
+            raise ValueError("Category name must be one of the following: Electronics, Clothing, Shoes, Health & beauty, Jewelry")
         return category_name
 
     def upload_images(self, images):
