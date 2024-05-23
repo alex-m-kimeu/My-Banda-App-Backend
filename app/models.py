@@ -290,6 +290,7 @@ class Order(db.Model, SerializerMixin):
     quantity = db.Column(db.Integer,  nullable=False)
     status = db.Column(db.String, nullable=False, default='Pending')
     location = db.Column(db.String, nullable=False, default='Current')
+
     delivery_status = db.Column(db.String, nullable=False, default='Pending')
     price= db.Column(db.Float, nullable=False)
     payment_id= db.Column(db.String, nullable=True)

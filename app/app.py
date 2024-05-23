@@ -644,6 +644,7 @@ class Orders(Resource):
         
 
     @jwt_required()
+
     def post(self):
         claims = get_jwt_identity()
         if claims['role'] != 'buyer':
