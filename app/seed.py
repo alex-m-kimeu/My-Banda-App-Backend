@@ -58,12 +58,7 @@ if __name__ == '__main__':
         ]
 
 
-        orders = [
-            Order(quantity= 2, price = 200.00, status="Pending", buyer_id=2, product_id=1, store_id= 2),
-            Order(quantity= 2,price = 200.00, status="Pending", buyer_id=2, product_id=2, store_id= 1),
-        ]
-      
-        
+
 
         db.session.add_all(users)
         db.session.add_all(store)
@@ -71,7 +66,6 @@ if __name__ == '__main__':
         db.session.add_all(carts)
         db.session.add_all(wishlists)
         db.session.add_all(deliveryCompanies)
-        db.session.add_all(orders)
 
         db.session.commit()    
         print("Done seeding!")
