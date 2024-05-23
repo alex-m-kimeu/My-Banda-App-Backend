@@ -32,7 +32,8 @@ class User(db.Model, SerializerMixin):
 
     
     # Serialization rules
-    serialize_rules= ('-stores.seller','-reviews', '-complaints',)
+    serialize_rules= ('-stores.seller','-reviews', '-complaints', '-wishlist', '-cart', '-deliverycompany',)
+
 
     # validations
     @validates('email')
@@ -77,7 +78,7 @@ class Store(db.Model, SerializerMixin):
     # Relationship
     seller = db.relationship('User', back_populates='store')
     complaints = db.relationship('Complaint', back_populates='store')
-    products = db.relationship('Product', back_populates='store')
+    products = db.relationship('Product', back_populates='store',cascade="all, delete-orphan")
     orders = db.relationship('Order', back_populates='store',  lazy=True)
 
 
@@ -88,8 +89,8 @@ class Store(db.Model, SerializerMixin):
     @validates('description')
     def validate_description(self, key, description):
         word_count = len(re.findall(r'\w+', description))
-        if word_count < 2 or word_count > 20:
-            raise ValueError("Description should be between 2 to 20 words.")
+        if word_count < 2 or word_count > 150:
+            raise ValueError("Description should be between 2 to 150 words.")
         return description
    
     @validates('location')
@@ -308,7 +309,10 @@ class Order(db.Model, SerializerMixin):
     deliverycompany = db.relationship('DeliveryCompany', back_populates='orders',  lazy=True)
 
     # Serialization rules
-    serialize_rules= ('-buyer','-products', '-store', '-deliverycompany')
+    serialize_rules= ('-buyer.orders', '-buyer.password','-buyer.role',  '-buyer.store','-buyer.deliverycompany','-buyer.products',
+                      '-deliverycompany.orders', '-deliverycompany.store','-deliverycompany.deliverer','-deliverycompany.products',
+                      '-store.orders', '-store.products','-store.buyer',   '-products', )
+
 
     @validates('status')
     def validate_category_name(self, key, status):
@@ -318,11 +322,11 @@ class Order(db.Model, SerializerMixin):
         return status
     
     @validates('delivery_status')
-    def validate_category_name(self, key, status):
+    def validate_category_name(self, key, deliver_status):
         allowed_status = ['Pending','Accepeted', 'Denied', 'Completed','Cancelled']
-        if status not in allowed_status:
+        if deliver_status not in allowed_status:
             raise ValueError('The Order Status Can oly be among the following "Pending','Accepeted', 'Denied', 'Completed','Cancelled')
-        return status
+        return deliver_status
 
 
 class DeliveryCompany(db.Model, SerializerMixin):
@@ -347,3 +351,10 @@ class DeliveryCompany(db.Model, SerializerMixin):
         upload_result = cloudinary.uploader.upload(image)
         self.logo = upload_result['url']
 
+    # validations
+    @validates('description')
+    def validate_description(self, key, description):
+        word_count = len(re.findall(r'\w+', description))
+        if word_count < 2 or word_count > 150:
+            raise ValueError("Description should be between 2 to 150 words.")
+        return description
