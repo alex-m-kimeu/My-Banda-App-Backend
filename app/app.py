@@ -11,7 +11,7 @@ import cloudinary
 import cloudinary.uploader
 import cloudinary.api
 
-from models import db, User, Store, Complaint, Cart, Review, Wishlist, Product
+from models import db, User, Store, Complaint, Cart, Review, Wishlist, Product, DeliveryCompany, Order
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -357,8 +357,6 @@ class ProductsByID(Resource):
 
 api.add_resource(ProductsByID, '/products/<int:id>')
 
-    
-
 class DeleteDecreaseFromCart(Resource):
     @jwt_required()
     def delete(self,id):
@@ -401,8 +399,6 @@ class DeleteDecreaseFromCart(Resource):
         db.session.commit()
         return make_response(item_to_be_decreased.to_dict(), 200)
         
-        
-
 api.add_resource(DeleteDecreaseFromCart, '/productdec/<int:id>')
 
 class IncreseInCart(Resource):
@@ -433,6 +429,312 @@ class IncreseInCart(Resource):
         return make_response(item_to_increased.to_dict(), 200)
 
 api.add_resource(IncreseInCart, '/productinc/<int:id>')
+
+class DeliveryCompanies(Resource):
+    # get all delivery componies
+    @jwt_required()
+    def get(self):
+        companies = [company.to_dict() for company in DeliveryCompany.query.all()]
+        return make_response(companies,200)
+    
+
+    # create a company/ post to the already existing comp
+    @jwt_required()
+    def post(self):
+        claims = get_jwt_identity()
+        if claims['role'] != 'deliverer':
+            return {"error": "Only deliverers can create delivery comanies"}, 403
+
+        if 'logo' not in request.files:
+            return {"error": "No logo file provided"}, 400
+
+        new_company = DeliveryCompany(
+            name=request.form['name'], 
+            description=request.form['description'],
+            location=request.form['location'],
+            deliverer_id=request.form['deliverer_id']
+        )
+
+        logo = request.files['logo']
+        new_company.upload_image(logo)
+
+        db.session.add(new_company)
+        db.session.commit()
+        return make_response(new_company.to_dict(), 201)
+
+api.add_resource(DeliveryCompanies, '/companies')
+
+
+class DeliveryCompaniesByID(Resource):
+    
+    @jwt_required()
+    def get(self,id):
+        company = DeliveryCompany.query.filter_by(id=id).first()
+        if company is None:
+            return {"error": "Delivery Company not found"}, 404
+        response_dict = company.to_dict()
+        return make_response(response_dict, 200)
+    
+    @jwt_required()
+    def patch(self,id):
+        claims = get_jwt_identity()
+        if claims['role'] != 'deliverer':
+            return {"error": "Only Deliverers can edit a Delivery company information"}, 403
+    
+        company = DeliveryCompany.query.filter_by(id=id).first()
+        if company is None:
+            return {"error": "Store not found"}, 404
+    
+        # data = request.form if request.form else request.get_json()
+        if 'name' in request.form:
+            company.name = request.form['name']
+        if 'description' in request.form:
+            company.description= request.form['description']
+        if 'location' in request.form:
+            company.location = request.form['location']
+
+        if 'logo' in request.files:
+            logo = request.files['logo']
+            company.upload_image(logo)
+    
+        try:
+            db.session.add(company)
+            db.session.commit()
+            return make_response(company.to_dict(), 200)
+        except AssertionError:
+            return {"errors": ["validation errors"]}, 400
+        
+
+        
+    @jwt_required()
+    def delete(self, id):
+        claims = get_jwt_identity()
+        if claims['role'] != 'deliverer':
+            return {"error": "Only Deliverers can remove a Delivery company"}, 403
+             
+        company = DeliveryCompany.query.filter_by(id=id).first()
+        if company is None:
+            return {"error": "Delivery Company not found"}, 404
+        
+        company = DeliveryCompany.query.get_or_404(id)
+        db.session.delete(company)
+        db.session.commit()
+        return make_response({'message': 'Delivery Company deleted successfully'})
+ 
+
+api.add_resource(DeliveryCompaniesByID, '/company/<int:id>')
+
+class OrdersByDeliverer(Resource):
+    @jwt_required()
+    def get(self):
+        claims = get_jwt_identity()
+        if claims['role'] != 'deliverer':
+            return {"error": "Only a Deliverer can get their orders"}, 403
+        
+        current_deliverer_id = claims['id']
+        company = DeliveryCompany.query.filter_by(deliverer_id =current_deliverer_id).first()
+        orders = Order.query.all()
+        for order in orders:
+            print(order.deliverycompany_id)
+            print(company.id)
+            print(company)
+            if order.deliverycompany_id == company.id:
+                print(order.deliverycompany_id)
+                print(company.id)
+                orders = Order.query.filter_by(deliverycompany_id =company.id).all()
+        
+                if orders is None:
+                    return{"this store has no orders yet"}
+        
+                else :
+                    all_products = [order.to_dict() for order in orders]
+                
+        
+                return make_response(all_products, 200)
+
+            else:
+                return {'msg':'this store has no orders yet'}
+
+api.add_resource(OrdersByDeliverer, '/delivererorders')
+
+
+class OrdersByStore(Resource):
+    @jwt_required()
+    def get(self):
+        claims = get_jwt_identity()
+        if claims['role'] != 'seller':
+            return {"error": "Only Sellers can get their orders"}, 403
+        
+        current_seller_id = claims['id']
+        store = Store.query.filter_by(seller_id=current_seller_id ).first()
+        orders = Order.query.filter_by(store_id =store.id).all()
+
+        if orders:
+            all_products = [order.to_dict() for order in orders]
+        else:
+            return{"this store has no orders yet"}
+
+        return make_response(all_products, 200)
+
+api.add_resource(OrdersByStore, '/storeorders')
+
+class AddDeliverer(Resource):
+    @jwt_required()
+    def patch(self, id):
+        claims = get_jwt_identity()
+        if claims['role'] != 'buyer':
+            return {"error": "Only a buyer can choose a delivery company"}, 403
+        
+        buyer_id = claims['id']
+        deliveryCompany_to_add = DeliveryCompany.query.get(id)
+        customer_orders= Order.query.filter_by(buyer_id=buyer_id).all()
+
+        new_orders=[]
+        for order in customer_orders:
+            print(order.deliverycompany_id)
+
+            order.deliverycompany_id= deliveryCompany_to_add.id
+            print(order)
+            new_orders.append(order)
+            db.session.commit()  
+
+        return make_response([order.to_dict() for order in new_orders], 200)
+        
+
+api.add_resource(AddDeliverer, '/deliverer/<int:id>')
+
+
+class Orders(Resource): 
+    @jwt_required()
+    def post(self):
+        claims = get_jwt_identity()
+        if claims['role'] != 'buyer':
+            return {"error": "Only buyers can create orders"}, 403
+        
+        buyer_id = claims['id']
+        customer_cart= Cart.query.filter_by(buyer_id=buyer_id).all()
+        print(customer_cart)
+        if customer_cart:
+            total = 0
+            for item in customer_cart:
+                total += item.products.price * item.quantity
+            orders= []    
+            for item in customer_cart:
+                new_order = Order(
+                    quantity= item.quantity,
+                    price= item.products.price,
+                    buyer_id = item.buyer_id,
+                    product_id = item.product_id,
+                    store_id = item.products.store_id    
+                )
+                print(item)
+                print(new_order)    
+                db.session.add(new_order)
+                product = Product.query.get(item.product_id)
+                product.quantity -= item.quantity    
+                db.session.delete(item)
+                
+                orders.append(new_order)
+                db.session.commit()  
+            return make_response([order.to_dict() for order in orders], 200)
+        else:
+            return {"msg":"no items in cart"}
+          
+api.add_resource(Orders, '/orders')
+
+
+class OrdersByID(Resource):
+    @jwt_required()
+    def get(self,id):
+        order = Order.query.filter_by(id=id).first()
+        if order is None:
+            return {"error": "Order not found"}, 404
+        response_dict = order.to_dict()
+        return make_response(response_dict, 200)
+    
+    @jwt_required()
+    def patch(self,id):
+
+        order = Order.query.filter_by(id=id).first()
+        if order is None:
+            return {"error": "Order not found"}, 404
+        
+        # data = request.form if request.form else request.get_json()
+        if 'status' in request.form :
+            order.status = request.form['status']
+    
+            try:
+                db.session.commit()
+                print("status changed successfully")
+                return make_response(order.to_dict(), 200)
+            except AssertionError:
+                return {"errors": ["validation errors"]}, 400
+        
+
+    @jwt_required()
+    def delete(self, id):
+             
+        order = Order.query.filter_by(id=id).first()
+        if order is None:
+            return {"error": "Order not found"}, 404
+        
+        
+        if order.status == "Completed" or order.status == "Cancellled":
+            order = Order.query.get_or_404(id)
+            db.session.delete(order)
+            db.session.commit()
+            return make_response({'message': 'Order deleted successfully'})
+        else :
+            return {'msg':'Order hass not yet been fullfilled'}
+        
+   
+api.add_resource(OrdersByID, '/orderByID/<int:id>')
+
+class DeliveryStatus(Resource):
+    @jwt_required()
+    def get(self,id):
+        order = Order.query.filter_by(id=id).first()
+        if order is None:
+            return {"error": "Order not found"}, 404
+        response_dict = order.to_dict()
+        return make_response(response_dict, 200)
+    
+    @jwt_required()
+    def patch(self,id):
+
+        order = Order.query.filter_by(id=id).first()
+        if order is None:
+            return {"error": "Order not found"}, 404
+        
+        # data = request.form if request.form else request.get_json()
+        if 'delivery_status' in request.form:
+            order.delivery_status = request.form['delivery_status']
+    
+            try:
+                db.session.commit()
+                print("status changed successfully")
+                return make_response(order.to_dict(), 200)
+            except AssertionError:
+                return {"errors": ["validation errors"]}, 400
+            
+    @jwt_required()
+    def delete(self, id):
+             
+        order = Order.query.filter_by(id=id).first()
+        if order is None:
+            return {"error": "Order not found"}, 404
+        
+        
+        if order.status == "Completed" or order.status == "Cancellled"or  order.status == "Denied":
+            order = Order.query.get_or_404(id)
+            db.session.delete(order)
+            db.session.commit()
+            return make_response({'message': 'Order deleted successfully'})
+        else :
+            return {'msg':'Order hass not yet been fullfilled'}
+    
+
+api.add_resource(DeliveryStatus, '/deliveryorderByID/<int:id>')
 
 
 # Store (get post)

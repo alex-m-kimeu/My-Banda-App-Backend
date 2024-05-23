@@ -27,7 +27,10 @@ class User(db.Model, SerializerMixin):
     complaints = db.relationship('Complaint', back_populates= 'buyer', cascade="all, delete-orphan")
     wishlist = db.relationship('Wishlist', back_populates='buyer', cascade="all, delete-orphan")
     cart = db.relationship('Cart', back_populates='buyer', cascade="all, delete-orphan")
+    orders = db.relationship('Order', back_populates='buyer', cascade="all, delete-orphan",  lazy=True)
+    deliverycompany = db.relationship('DeliveryCompany', back_populates= 'deliverer', uselist=False, cascade="all, delete-orphan")
 
+    
     # Serialization rules
     serialize_rules= ('-stores.seller','-reviews', '-complaints',)
 
@@ -75,9 +78,11 @@ class Store(db.Model, SerializerMixin):
     seller = db.relationship('User', back_populates='store')
     complaints = db.relationship('Complaint', back_populates='store')
     products = db.relationship('Product', back_populates='store')
+    orders = db.relationship('Order', back_populates='store',  lazy=True)
+
 
     # Serialization rules
-    serialize_rules= ('-seller','-complaints', '-products.store')
+    serialize_rules= ('-seller','-complaints', '-products.store', '-products.orders', "-orders", )
 
     # validations
     @validates('description')
@@ -152,6 +157,7 @@ class Cart(db.Model, SerializerMixin):
     items_cost = db.Column(db.Integer, nullable=False)
     total_cost = db.Column(db.Integer, nullable=False)
     
+    
     # Foreign Keys
     buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
@@ -160,7 +166,7 @@ class Cart(db.Model, SerializerMixin):
     buyer = db.relationship('User', back_populates='cart', lazy=True) 
     products = db.relationship('Product', back_populates='cart', lazy=True) 
    
-    serialize_rules=('-buyer','-products.cart')
+    serialize_rules=('-buyer','-products.cart', '-products.orders','-company.cart', '-company.orders')
     
 
 
@@ -239,6 +245,8 @@ class Product(db.Model, SerializerMixin):
     store = db.relationship('Store', back_populates='products', lazy=True)
     cart = db.relationship('Cart', back_populates='products', lazy=True) 
     wishlist = db.relationship('Wishlist', back_populates='products', lazy=True) 
+    orders = db.relationship('Order', back_populates='products',  lazy=True)
+
 
     
     # Serialization rules
@@ -272,3 +280,67 @@ class Product(db.Model, SerializerMixin):
         for image in images:
             upload_result = cloudinary.uploader.upload(image)
             self.images.append(upload_result['url'])
+
+
+
+class Order(db.Model, SerializerMixin):
+    __tablename__= 'orders'
+
+    id = db.Column(db.Integer, primary_key=True)
+    quantity = db.Column(db.Integer,  nullable=False)
+    status = db.Column(db.String, nullable=False, default='Pending')
+    delivery_status = db.Column(db.String, nullable=False, default='Pending')
+    price= db.Column(db.Float, nullable=False)
+    payment_id= db.Column(db.String, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now(timezone.utc))
+
+    buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'),  nullable=False)
+    store_id = db.Column(db.Integer, db.ForeignKey('stores.id'),  nullable=False)
+    deliverycompany_id = db.Column(db.Integer, db.ForeignKey('deliverycompanies.id'), nullable=False, default=1)
+    
+    buyer = db.relationship('User', back_populates='orders',  lazy=True)
+    products = db.relationship('Product', back_populates='orders',  lazy=True)
+    store = db.relationship('Store', back_populates='orders',  lazy=True)
+    deliverycompany = db.relationship('DeliveryCompany', back_populates='orders',  lazy=True)
+
+    # Serialization rules
+    serialize_rules= ('-buyer','-products', '-store', '-deliverycompany')
+
+    @validates('status')
+    def validate_category_name(self, key, status):
+        allowed_status = ['Pending','Processed', 'Shipped', 'Completed','Cancelled']
+        if status not in allowed_status:
+            raise ValueError('The Order Status Can oly be among the following "Pending','Processed', 'Shipped', 'Completed','Cancelled')
+        return status
+    
+    @validates('delivery_status')
+    def validate_category_name(self, key, status):
+        allowed_status = ['Pending','Accepeted', 'Denied', 'Completed','Cancelled']
+        if status not in allowed_status:
+            raise ValueError('The Order Status Can oly be among the following "Pending','Accepeted', 'Denied', 'Completed','Cancelled')
+        return status
+
+
+class DeliveryCompany(db.Model, SerializerMixin):
+    __tablename__= 'deliverycompanies'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False,  unique=True)
+    location = db.Column(db.String, nullable=False)
+    logo = db.Column(db.String, nullable=False)
+    description = db.Column(db.String, nullable=False)
+
+    deliverer_id = db.Column(db.Integer, db.ForeignKey('users.id'),nullable=False)
+    
+    deliverer = db.relationship('User', back_populates='deliverycompany',  lazy=True)
+    orders = db.relationship('Order', back_populates='deliverycompany',  lazy=True,  cascade="all, delete-orphan")
+
+
+    serialize_rules= ('-deliverer.deliverycompany','-deliverer.cart','-deliverer.image','-deliverer.orders','-deliverer.password','-deliverer.store','-deliverer.wishlist','-deliverer.role','-deliverer.id',
+                      '-orders',)
+    
+    def upload_image(self, image):
+        upload_result = cloudinary.uploader.upload(image)
+        self.logo = upload_result['url']
+
