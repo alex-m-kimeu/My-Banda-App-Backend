@@ -289,10 +289,12 @@ class Order(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     quantity = db.Column(db.Integer,  nullable=False)
     status = db.Column(db.String, nullable=False, default='Pending')
+    location = db.Column(db.String, nullable=False, default='Current')
     delivery_status = db.Column(db.String, nullable=False, default='Pending')
     price= db.Column(db.Float, nullable=False)
     payment_id= db.Column(db.String, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now(timezone.utc))
+
 
     buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'),  nullable=False)

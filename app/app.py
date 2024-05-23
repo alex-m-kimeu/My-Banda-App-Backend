@@ -443,7 +443,7 @@ class DeliveryCompanies(Resource):
     def post(self):
         claims = get_jwt_identity()
         if claims['role'] != 'deliverer':
-            return {"error": "Only deliverers can create delivery comanies"}, 403
+            return {"error": "Only deliverers can create delivery companies"}, 403
 
         if 'logo' not in request.files:
             return {"error": "No logo file provided"}, 400
@@ -603,8 +603,46 @@ class AddDeliverer(Resource):
 
 api.add_resource(AddDeliverer, '/deliverer/<int:id>')
 
+class AddLocation(Resource):
+    @jwt_required()
+    def patch(self):
+        claims = get_jwt_identity()
+        if claims['role'] != 'buyer':
+            return {"error": "Only a buyer can add their location"}, 403
+        
+        buyer_id = claims['id']
+        customer_orders= Order.query.filter_by(buyer_id=buyer_id).all()
+
+        new_orders=[]
+        for order in customer_orders:
+            
+            if 'location' in request.form :
+                order.location = request.form['location']
+                print(order.location)
+                print('location added successfully')
+
+                new_orders.append(order)
+                db.session.commit()  
+    
+        return make_response([order.to_dict() for order in new_orders], 200)
+        
+
+api.add_resource(AddLocation, '/location')
+
 
 class Orders(Resource): 
+    @jwt_required()
+    def get(self):
+        claims = get_jwt_identity()
+        if claims['role'] != 'buyer':
+            return {"error": "Only buyers can create orders"}, 403
+        
+        buyer_id = claims['id']
+        customer_orders= Order.query.filter_by(buyer_id=buyer_id).all()
+
+        return make_response([order.to_dict() for order in customer_orders], 200)
+        
+
     @jwt_required()
     def post(self):
         claims = get_jwt_identity()
