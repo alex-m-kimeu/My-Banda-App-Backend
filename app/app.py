@@ -944,15 +944,6 @@ api.add_resource(ReviewsByID, '/review/<int:id>')
 
 # Wishlist (get post)
 class Wishlists(Resource):
-    # @jwt_required()
-    # def get(self):
-    #     claims = get_jwt_identity()
-    #     if claims['role'] != 'buyer':
-    #         return {"error": "Only buyers can view wishlists"}, 403
-        
-    #     wishlists = [wishlist.to_dict() for wishlist in Wishlist.query.all()]
-    #     return make_response(wishlists,200)
-
     @jwt_required()
     def get(self):
         claims = get_jwt_identity()
@@ -961,11 +952,9 @@ class Wishlists(Resource):
         buyer_id = claims['id']
         wishlists= Wishlist.query.filter_by(buyer_id=buyer_id).all()
         if not wishlists:
-            return {"error": "No Wishlist association with this buyer"}, 404
-             
-
+            return [], 200
+     
         return jsonify([wishlist.to_dict(rules=()) for wishlist in wishlists])
-        
     
     @jwt_required()
     def  post(self):
@@ -1020,22 +1009,7 @@ class WishlistByID(Resource):
             except AssertionError:
                 return {"errors": ["validation errors"]}, 400
         else:
-            return {"errors": ["validation errors"]}, 400
-        
-    # @jwt_required()
-    # def delete(self, id):
-    #     claims = get_jwt_identity()
-    #     if claims['role'] != 'buyer':
-    #        return {"error": "Only buyers can delete wishlists"}, 403
-        
-    #     wishlist = Wishlist.query.filter_by(id=id).first()
-    #     if wishlist is None:
-    #         return {"error": "Wishlist not found"}, 404
-        
-    #     wishlist = Wishlist.query.get_or_404(id)
-    #     db.session.delete(wishlist)
-    #     db.session.commit()
-    #     return make_response({'message': 'Wishlist deleted successfully'})
+            return {"errors": ["validation errors"]}, 400       
 
     @jwt_required()
     def post(self, id):
@@ -1057,10 +1031,8 @@ class WishlistByID(Resource):
                 print('Item added to the wishlist')
                 return make_response(new_wishlist_item.to_dict(),200)
         else :
+               return {"message": "Product already exists in the wishlist"}, 200
             
-               return {"message": "Product aleardy existis in the wishlist"}, 200
-            
-
     @jwt_required()
     def delete(self,id):
         claims = get_jwt_identity()
@@ -1074,8 +1046,6 @@ class WishlistByID(Resource):
             db.session.commit()
             return {"message": "Product deleted successfully from the wishlist"}, 200
         
-
-
 api.add_resource(WishlistByID,'/wishlists/<int:id>')
 
 # Complaints (get post)
@@ -1173,18 +1143,15 @@ class Carts(Resource):
         buyer_id = claims['id']
         cart = Cart.query.filter_by(buyer_id=buyer_id).all()
         if not cart:
-            return {"error": "No Cart association with this buyer"}, 404
+            return [], 200
         
         total_subtotal = sum(ct.subtotal for ct in cart)
         for order in cart:
             order.items_cost= total_subtotal
-            order.total_cost = total_subtotal +200
-             
+            order.total_cost = total_subtotal +200    
 
         return jsonify([ct.to_dict(rules=()) for ct in cart])
     
-    
-
 api.add_resource(Carts, '/carts')
 
 # Cart By ID (get patch delete)
@@ -1198,25 +1165,22 @@ class CartByID(Resource):
         
         cart = Cart.query.filter_by(id=id).first()
         if cart is None:
-            return {"error": "Cart not found"}, 404
+            return [], 200
         return make_response(cart.to_dict(), 200)
-    
-
     
     @jwt_required()
     def delete(self, id):
         claims = get_jwt_identity()
         if claims['role'] != 'buyer':
-            return {"error": "Only buyers can delete the cart"}, 403
-        
-        cart = Cart.query.filter_by(id=id).first()
-        if cart is None:
-            return {"error": "Cart not found"}, 404
-        
-        cart = Cart.query.get_or_404(id)
-        db.session.delete(cart)
+            return {"error": "Only buyers can delete from the cart"}, 403
+
+        cart_item = Cart.query.filter_by(id=id, buyer_id=claims['id']).first()
+        if not cart_item:
+            return {"error": "Item not found in cart"}, 404
+
+        db.session.delete(cart_item)
         db.session.commit()
-        return make_response({'message': 'Cart deleted successfully'})
+        return {"message": "Item deleted from cart successfully"}, 200
 
 api.add_resource(CartByID, '/cart/<int:id>')
 
