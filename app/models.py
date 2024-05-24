@@ -32,7 +32,7 @@ class User(db.Model, SerializerMixin):
 
     
     # Serialization rules
-    serialize_rules= ('-stores.seller','-reviews', '-complaints', '-wishlist', '-cart', '-deliverycompany',)
+    serialize_rules= ('-stores.seller','-reviews', '-complaints', '-wishlist', '-cart', '-deliverycompany.deliverer',)
 
 
     # validations
@@ -323,9 +323,9 @@ class Order(db.Model, SerializerMixin):
     
     @validates('delivery_status')
     def validate_category_name(self, key, deliver_status):
-        allowed_status = ['Pending','Accepeted', 'Denied', 'Completed','Cancelled']
+        allowed_status = ['Pending','Accepted', 'Denied', 'Completed','Cancelled']
         if deliver_status not in allowed_status:
-            raise ValueError('The Order Status Can oly be among the following "Pending','Accepeted', 'Denied', 'Completed','Cancelled')
+            raise ValueError('The Order Status Can oly be among the following "Pending','Accepted', 'Denied', 'Completed','Cancelled')
         return deliver_status
 
 
