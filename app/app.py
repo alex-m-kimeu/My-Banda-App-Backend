@@ -308,9 +308,7 @@ class ProductsByID(Resource):
                 db.session.add(new_cart_item)
                 db.session.commit()
                 print('Item added added to the cart')
-    
-              
-    
+                print(new_cart_item)
                 return make_response(new_cart_item.to_dict(),200)
         else :
             if product_exists:
@@ -339,7 +337,8 @@ class ProductsByID(Resource):
                 db.session.add(new_cart_item)
                 db.session.commit()
                 print('Item added added to the cart')
-    
+                return make_response(new_cart_item.to_dict(),200)
+                
         
     @jwt_required()
     def delete(self, id):
@@ -718,13 +717,12 @@ class OrdersByID(Resource):
             return {"error": "Order not found"}, 404
         
         
-        if order.status == "Completed" or order.status == "Cancellled":
-            order = Order.query.get_or_404(id)
-            db.session.delete(order)
-            db.session.commit()
-            return make_response({'message': 'Order deleted successfully'})
-        else :
-            return {'msg':'Order hass not yet been fullfilled'}
+        order = Order.query.get_or_404(id)
+        db.session.delete(order)
+        db.session.commit()
+        print('Order deleted successfully')
+        return make_response({'message': 'Order deleted successfully'})
+      
         
    
 api.add_resource(OrdersByID, '/orderByID/<int:id>')
@@ -764,13 +762,12 @@ class DeliveryStatus(Resource):
             return {"error": "Order not found"}, 404
         
         
-        if order.status == "Completed" or order.status == "Cancellled"or  order.status == "Denied":
-            order = Order.query.get_or_404(id)
-            db.session.delete(order)
-            db.session.commit()
-            return make_response({'message': 'Order deleted successfully'})
-        else :
-            return {'msg':'Order hass not yet been fullfilled'}
+       
+        order = Order.query.get_or_404(id)
+        db.session.delete(order)
+        db.session.commit()
+        return make_response({'message': 'Order deleted successfully'})
+    
     
 
 api.add_resource(DeliveryStatus, '/deliveryorderByID/<int:id>')

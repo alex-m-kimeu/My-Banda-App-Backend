@@ -311,7 +311,8 @@ class Order(db.Model, SerializerMixin):
     # Serialization rules
     serialize_rules= ('-buyer.orders', '-buyer.password','-buyer.role',  '-buyer.store','-buyer.deliverycompany','-buyer.products',
                       '-deliverycompany.orders', '-deliverycompany.store','-deliverycompany.deliverer','-deliverycompany.products',
-                      '-store.orders', '-store.products','-store.buyer',   '-products', )
+                      '-products.orders', '-products.store','-products','-products.cart',
+                      '-products.wishlist', '-store.products','-store.buyer', )
 
 
     @validates('status')
@@ -320,6 +321,7 @@ class Order(db.Model, SerializerMixin):
         if status not in allowed_status:
             raise ValueError('The Order Status Can oly be among the following "Pending','Processed', 'Shipped', 'Completed','Cancelled')
         return status
+    
     
     @validates('delivery_status')
     def validate_category_name(self, key, deliver_status):
