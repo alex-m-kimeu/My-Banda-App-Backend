@@ -1,6 +1,6 @@
 from flask_bcrypt import Bcrypt
 from app import app
-from models import db, User, Store, Product,  Cart, Wishlist, DeliveryCompany, Order
+from models import db, User, Store, Product, DeliveryCompany
 from sqlalchemy import text
 
 bcrypt = Bcrypt(app)
@@ -13,13 +13,7 @@ def execute_sql(sql):
 if __name__ == '__main__':
     with app.app_context():
         print("Clearing db...")
-        User.query.delete()
-        Store.query.delete()
-        Product.query.delete()
-        Cart.query.delete()
-        Wishlist.query.delete()
-        DeliveryCompany.query.delete()
-        Order.query.delete()
+        execute_sql("TRUNCATE TABLE users, stores, products, deliverycompanies RESTART IDENTITY CASCADE")
            
         print("Seeding Users...")
         users = [
