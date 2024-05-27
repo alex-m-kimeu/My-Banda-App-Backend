@@ -14,10 +14,11 @@ import cloudinary.api
 from models import db, User, Store, Complaint, Cart, Review, Wishlist, Product, DeliveryCompany, Order
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+load_dotenv()
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.json.compact = False
-load_dotenv()
+
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=1)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
@@ -1186,4 +1187,4 @@ api.add_resource(CartByID, '/cart/<int:id>')
 if __name__ == '__main__':
     with app.app_context():
         create_admin()
-    app.run(debug=True, port=5500)
+    app.run(debug=False)
